@@ -561,7 +561,7 @@ while M_pulv_max <= M_pulv_lim:
 # CONSUMO DE POTÊNCIA
 #=============================================================================#  
 
-            T_hover.append(M_tot[i]/n_motores)
+            T_hover.append(M_tot[i]/n_motores) 
             if n_motores == 8:
                 
                 T_M1.append(T_hover[i] + Cnst_PWM_T * (- 0.8 * v[i] - 0.4035 * w[i] + 3.5 * vz[i]))
