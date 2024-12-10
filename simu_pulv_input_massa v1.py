@@ -4,7 +4,8 @@ import pandas as pd
 # from CUSTOS_ELETRICO import custos
 import plotly.graph_objects as go
  
-#INPUTS PRINCIPAIS ============================================================================================#  
+# INPUTS PRINCIPAIS
+#=============================================================================#  
 
 horas_maximas = 5 #[h]
 n_motores = 8 # Número motores
@@ -21,8 +22,8 @@ cap_bat = 30000*0.804 # [m/Ah]*útil
 M_vazio = 38 # [kg] 
 M_bat = 12.9 # [kg] 
 COAXIAL_80 = 1.397542375147 # Sobressalência de potência do coaxial
+Cnst_PWM_T = 0.3844 # Constante de transformação pwm para tração, feral = 0.02209*Diametro - 0.43406
 fator_erro_otimização = 1.1 # Fator para adequar a otimização
-OTIMIZAR_TANQUE = "NAO" #SIM ou NAO para otimizar
 bateria_limite = 0.29 # [%] de bateria para RTL BAT
 z_deslocando = 14 # [m] 
 z_pulverizando = 5.001 # [m] 
@@ -35,8 +36,14 @@ zi = 5.0 # [m] Altura pulverização referência
 Y = 300 # [m] Lado do Talhão
 area_total = 17.28 # [ha] 
 X0 = area_total*10000/Y # [m] Lado do Talhão
+g = 9.80665 # gravidade
 
-#INPUTS DO TALHÃO ============================================================================================#  
+# INPUTS DO TALHÃO
+#=============================================================================# 
+
+OTIMIZAR_TANQUE = "NAO" #SIM ou NAO para otimizar tanque de cada voo
+POSICAO = "SIM" #SIM ou NAO para setar a posição de cada voo
+TANQUE = "SIM"  #SIM ou NAO para setar o tanque de cada voo
 
 perna_rtw = [8,15,22,29,35,42,48,53] # Pernas para x voos 
 X_rtw =     [x0 + faixa/2 + faixa*(perna_rtw[0]-1),
@@ -50,8 +57,10 @@ X_rtw =     [x0 + faixa/2 + faixa*(perna_rtw[0]-1),
 Y_rtw =     [293.20, 127.22, 298.32, 240.32, 130.53, 317.62, 298.16, 209.30] # [m] para x voos 
 Dist_ensaio_voo = [2511, 2662, 2940, 2817, 2933, 3168, 3071, 2904] # [m] para x voos 
 massa_joao = [35.00,29.50,31.50,31.00,30.00,30.00,30.00,26.50] # [L] para x voos 
+Z_rtw = [14,18,19,25,27,30,37,41]
 
-#CÁLCULOS INICIAIS ============================================================================================# 
+# CÁLCULOS INICIAIS
+#=============================================================================# 
 
 it = 0
 E_bat_max = (cap_bat/1000)*3.7*celulas
@@ -61,7 +70,6 @@ cnst = 1/(eta_escmotor*eta_helice)
 tanque = 0
 Y0 = X0
 v_yaw = math.pi/180*omega*faixa/2
-
 M_pulv_min = 35
 M_pulv_lim = M_pulv_min
 M_pulv_max = M_pulv_min 
@@ -135,7 +143,6 @@ preco_por_ha_real = np.zeros(len(volume_tanque))
 
 while M_pulv_max <= M_pulv_lim:
     M_tot_in = M_pulv_max + M_vazio + M_bat
-    
     P_sensores = 0;
     P_LED = 100
     P_sist = 38.71
@@ -155,23 +162,19 @@ while M_pulv_max <= M_pulv_lim:
         voo = 1     
         iii = 0
         M_pulv = []; M_pulv.append(massa_joao[iii])
-
         t = []; t.append(t_prep + t_desloc_pre_op)
         t_pulv = []; t_pulv.append(0.0)
         t_manobra = []; t_manobra.append(0.0)
         t_de_voo = []; t_de_voo.append(0)
-
         X = X0 + j
         Z = zi
         theta_dir = 0
         xi = x0 + faixa/2
-
         x = []; x_rtl = 0
         y = []; y_rtl = 0
         z = []; z_rtl = 0
         theta = []; theta_rtl = 0
         alpha = 0
-        
         x.append(0.0)
         y.append(0.0)
         z.append(0.0)
@@ -180,38 +183,28 @@ while M_pulv_max <= M_pulv_lim:
         autonomia = [];
         dist_rtl = [];
         produtiv_por_voo = []
-        
         M_tot.append(M_tot_in)
-
         P_bat = []
         Preq_tot = [];
         E_bat = []; E_bat.append(E_bat_max)
-        
         i = 0
         
-        OP.append("DESLOCANDO")
-        
-#OPERANDO ================================================================================================#  
+# COMEÇANDO A OPERAÇÃO
+#=============================================================================# 
 
+        OP.append("DESLOCANDO")
         while OP[i] != "FIM":
             
-            if voo == 1:
-                z_deslocando = 14
-            elif voo == 2:
-                z_deslocando = 18
-            elif voo == 3:
-                z_deslocando = 19
-            elif voo == 4:
-                z_deslocando = 25
-            elif voo == 5:
-                z_deslocando = 27
-            elif voo == 6:
-                z_deslocando = 30
-            elif voo == 7:
-                z_deslocando = 37
-            elif voo == 8:
-                z_deslocando = 41
-#DESLOCANDO ==============================================================================================# 
+# SETANDO ALTURA
+#=============================================================================# 
+            
+            if POSICAO == "SIM":
+                for pos in range(len(Z_rtw)):
+                    if voo == (pos+1):
+                        z_deslocando = Z_rtw[pos]
+                    
+# DESLOCANDO
+#=============================================================================#  
             
             if voo == 1 and OP[i] == "DESLOCANDO":
                 v_desloc = v_pulv-0.0001
@@ -286,7 +279,8 @@ while M_pulv_max <= M_pulv_lim:
                 else:
                     y.append(y[i] + v[i] * math.cos(math.radians(theta[i])) * dt)
                     
-#PULVERIZANDO ==============================================================================================#    
+# PULVERIZANDO
+#=============================================================================#     
         
             if OP[i] == "PULVERIZANDO":
                 if z[i] >= z_pulverizando:
@@ -316,7 +310,6 @@ while M_pulv_max <= M_pulv_lim:
                     STATUS.append("YAW+")
                     if STATUS[i-1] == "PITCH desacelerando":
                         n_passada = n_passada + 1
-                        print(x[i], n_passada)
                 elif (theta[i] <= theta_dir + 180 and y[i] <= (yi + (v_pulv**2 - v_yaw**2)/(2*acel)) and v[i-1] > v_yaw):
                     vz.append(0.0)
                     w.append(0.0)
@@ -329,7 +322,6 @@ while M_pulv_max <= M_pulv_lim:
                     STATUS.append("YAW-")
                     if STATUS[i-1] == "PITCH desacelerando":
                         n_passada = n_passada + 1
-                        print(x[i], n_passada)
                     
                 x.append(x[i] + v[i] * math.sin(math.radians(theta[i])) * dt)
                 y.append(y[i] + v[i] * math.cos(math.radians(theta[i])) * dt)
@@ -354,7 +346,8 @@ while M_pulv_max <= M_pulv_lim:
                 else:
                     theta.append(theta[i])  
             
-#RTL =========================================================================================================# 
+# RTL
+#=============================================================================#  
         
             if OP[i] == "RTL CALDA" or OP[i] == "RTL BAT" or OP[i] == "RTL FIM":
                 if z[i] < z_deslocando and x[i] != 0 and v[i-1] > 0:
@@ -444,7 +437,8 @@ while M_pulv_max <= M_pulv_lim:
                     else:
                         y.append(y[i] - abs(v[i] * math.cos(math.radians(theta[i])) * dt))
     
-#RTW =========================================================================================================#   
+# RTW
+#=============================================================================#    
 
             if OP[i] == "RTW":
                 if theta_rtl == theta_dir:
@@ -564,59 +558,58 @@ while M_pulv_max <= M_pulv_lim:
                           y.append(y[i] + v[i] * math.cos(math.radians(theta[i])) * dt)
             
             
-#CONSUMO DE POTÊNCIA ==============================================================================================# 
+# CONSUMO DE POTÊNCIA
+#=============================================================================#  
 
-            T_hover.append(M_tot[i]/n_motores)      # [kg]
-            # Cnst_PWM_T = 0.02209*Diametro - 0.43406
-            Cnst_PWM_T = 0.3844
+            T_hover.append(M_tot[i]/n_motores)
             if n_motores == 8:
                 
                 T_M1.append(T_hover[i] + Cnst_PWM_T * (- 0.8 * v[i] - 0.4035 * w[i] + 3.5 * vz[i]))
                 if T_M1[i] < 0.05*T_hover[i]:
                     T_M1[i] = 0.05*T_hover[i]
-                ef_M1.append(1000/9.81/(cnst*(np.sqrt(T_M1[i]*9.81/(2*rho*A)))))
+                ef_M1.append(1000/g/(cnst*(np.sqrt(T_M1[i]*g/(2*rho*A)))))
                 Preq_M1.append(COAXIAL_80*(1000 * T_M1[i]/ef_M1[i]))
                 
                 T_M2.append(T_hover[i] + Cnst_PWM_T * (0.8 * v[i] - 0.4035 * w[i] + 3.5 * vz[i]))
                 if T_M2[i] < 0.05*T_hover[i]:
                     T_M2[i] = 0.05*T_hover[i]
-                ef_M2.append(1000/9.81/(cnst*(np.sqrt(T_M2[i]*9.81/(2*rho*A)))))
+                ef_M2.append(1000/g/(cnst*(np.sqrt(T_M2[i]*g/(2*rho*A)))))
                 Preq_M2.append(COAXIAL_80*(1000 * T_M2[i]/ef_M2[i]))
                 
                 T_M3.append(T_hover[i] + Cnst_PWM_T * (- 0.23 * v[i] + 0.4035 * w[i] + 3.5 * vz[i]))
                 if T_M3[i] < 0.05*T_hover[i]:
                     T_M3[i] = 0.05*T_hover[i]
-                ef_M3.append(1000/9.8/(cnst*(np.sqrt(T_M3[i]*9.8/(2*rho*A)))))
+                ef_M3.append(1000/g/(cnst*(np.sqrt(T_M3[i]*g/(2*rho*A)))))
                 Preq_M3.append(COAXIAL_80*(1000 * T_M3[i]/ef_M3[i]))
                 
                 T_M4.append(T_hover[i] + Cnst_PWM_T * (0.8 * v[i] + 0.4035 * w[i] + 3.5 * vz[i]))
                 if T_M4[i] < 0.05*T_hover[i]:
                     T_M4[i] = 0.05*T_hover[i]
-                ef_M4.append(1000/9.81/(cnst*(np.sqrt(T_M4[i]*9.81/(2*rho*A)))))
+                ef_M4.append(1000/g/(cnst*(np.sqrt(T_M4[i]*g/(2*rho*A)))))
                 Preq_M4.append(COAXIAL_80*(1000 * T_M4[i]/ef_M4[i]))
         
                 T_M5.append(T_hover[i] + Cnst_PWM_T * (- 0.8 * v[i] + 0.4035 * w[i] + 3.5 * vz[i]))
                 if T_M5[i] < 0.05*T_hover[i]:
                     T_M5[i] = 0.05*T_hover[i]
-                ef_M5.append(1000/9.81/(cnst*(np.sqrt(T_M5[i]*9.81/(2*rho*A)))))
+                ef_M5.append(1000/g/(cnst*(np.sqrt(T_M5[i]*g/(2*rho*A)))))
                 Preq_M5.append(COAXIAL_80*(1000 * T_M5[i]/ef_M5[i]))
                 
                 T_M6.append(T_hover[i] + Cnst_PWM_T * (0.23 * v[i] + 0.4035 * w[i] + 3.5 * vz[i]))
                 if T_M6[i] < 0.05*T_hover[i]:
                     T_M6[i] = 0.05*T_hover[i]
-                ef_M6.append(1000/9.8/(cnst*(np.sqrt(T_M6[i]*9.8/(2*rho*A)))))
+                ef_M6.append(1000/g/(cnst*(np.sqrt(T_M6[i]*g/(2*rho*A)))))
                 Preq_M6.append(COAXIAL_80*(1000 * T_M6[i]/ef_M6[i]))
                 
                 T_M7.append(T_hover[i] + Cnst_PWM_T * (- 0.23 * v[i] - 0.4035 * w[i] + 3.5 * vz[i]))
                 if T_M7[i] < 0.05*T_hover[i]:
                     T_M7[i] = 0.05*T_hover[i]
-                ef_M7.append(1000/9.8/(cnst*(np.sqrt(T_M7[i]*9.8/(2*rho*A)))))
+                ef_M7.append(1000/g/(cnst*(np.sqrt(T_M7[i]*g/(2*rho*A)))))
                 Preq_M7.append(COAXIAL_80*(1000 * T_M7[i]/ef_M7[i]))
                 
                 T_M8.append(T_hover[i] + Cnst_PWM_T * (0.23 * v[i] - 0.4035 * w[i] + 3.5 * vz[i]))
                 if T_M8[i] < 0.05*T_hover[i]:
                     T_M8[i] = 0.05*T_hover[i]
-                ef_M8.append(1000/9.8/(cnst*(np.sqrt(T_M8[i]*9.8/(2*rho*A)))))
+                ef_M8.append(1000/g/(cnst*(np.sqrt(T_M8[i]*g/(2*rho*A)))))
                 Preq_M8.append(COAXIAL_80*(1000 * T_M8[i]/ef_M8[i]))
                 
                 Preq_prop.append(Preq_M1[i] +  Preq_M2[i] + Preq_M3[i] + Preq_M4[i] + Preq_M5[i] + Preq_M6[i] + Preq_M7[i] + Preq_M8[i])
@@ -626,37 +619,37 @@ while M_pulv_max <= M_pulv_lim:
                 T_M1.append(T_hover[i] + Cnst_PWM_T * (-0.06923890 * v[i] - 0.29355463 * w[i] + 2.70526734 * vz[i]))
                 if T_M1[i] < 0.05*T_hover[i]:
                     T_M1[i] = 0.05*T_hover[i]
-                ef_M1.append(1000/9.81/(cnst*(np.sqrt(T_M1[i]*9.81/(2*rho*A)))))
+                ef_M1.append(1000/g/(cnst*(np.sqrt(T_M1[i]*g/(2*rho*A)))))
                 Preq_M1.append(1000 * T_M1[i]/ef_M1[i])
                 
                 T_M2.append(T_hover[i] +  Cnst_PWM_T * (-0.06923890 * v[i] + 0.29648913 * w[i] + 2.70526734 * vz[i]))
                 if T_M2[i] < 0.05*T_hover[i]:
                     T_M2[i] = 0.05*T_hover[i]
-                ef_M2.append(1000/9.81/(cnst*(np.sqrt(T_M2[i]*9.81/(2*rho*A)))))
+                ef_M2.append(1000/g/(cnst*(np.sqrt(T_M2[i]*g/(2*rho*A)))))
                 Preq_M2.append(1000 * T_M2[i]/ef_M2[i])
                 
                 T_M3.append(T_hover[i] + Cnst_PWM_T * (-0.41846113 * v[i] - 0.29355463 * w[i] + 2.70526734 * vz[i]))
                 if T_M3[i] < 0.05*T_hover[i]:
                     T_M3[i] = 0.05*T_hover[i]
-                ef_M3.append(1000/9.8/(cnst*(np.sqrt(T_M3[i]*9.8/(2*rho*A)))))
+                ef_M3.append(1000/g/(cnst*(np.sqrt(T_M3[i]*g/(2*rho*A)))))
                 Preq_M3.append(1000 * T_M3[i]/ef_M3[i])
                 
                 T_M4.append(T_hover[i] +  Cnst_PWM_T * (0.52299572 * v[i] + 0.29648913 * w[i] + 2.70526734 * vz[i]))
                 if T_M4[i] < 0.05*T_hover[i]:
                     T_M4[i] = 0.05*T_hover[i]
-                ef_M4.append(1000/9.81/(cnst*(np.sqrt(T_M4[i]*9.81/(2*rho*A)))))
+                ef_M4.append(1000/g/(cnst*(np.sqrt(T_M4[i]*g/(2*rho*A)))))
                 Preq_M4.append(1000 * T_M4[i]/ef_M4[i])
         
                 T_M5.append(T_hover[i] +  Cnst_PWM_T * (-0.41846113 * v[i] + 0.29648913 * w[i] + 2.70526734 * vz[i]))
                 if T_M5[i] < 0.05*T_hover[i]:
                     T_M5[i] = 0.05*T_hover[i]
-                ef_M5.append(1000/9.81/(cnst*(np.sqrt(T_M5[i]*9.81/(2*rho*A)))))
+                ef_M5.append(1000/g/(cnst*(np.sqrt(T_M5[i]*g/(2*rho*A)))))
                 Preq_M5.append(1000 * T_M5[i]/ef_M5[i])
                 
                 T_M6.append(T_hover[i] +  Cnst_PWM_T * (0.52299572 * v[i] - 0.29355463 * w[i] + 2.70526734 * vz[i]))
                 if T_M6[i] < 0.05*T_hover[i]:
                     T_M6[i] = 0.05*T_hover[i]
-                ef_M6.append(1000/9.8/(cnst*(np.sqrt(T_M6[i]*9.8/(2*rho*A)))))
+                ef_M6.append(1000/g/(cnst*(np.sqrt(T_M6[i]*g/(2*rho*A)))))
                 Preq_M6.append(1000 * T_M6[i]/ef_M6[i])
                 
                 Preq_prop.append(Preq_M1[i] +  Preq_M2[i] + Preq_M4[i] + Preq_M5[i] + Preq_M3[i] + Preq_M6[i])
@@ -666,25 +659,25 @@ while M_pulv_max <= M_pulv_lim:
                 T_M1.append(T_hover[i] - 0.1548 * v[i] + 0.0423 * w[i] + 0.8315 * vz[i])
                 if T_M1[i] < 0.05*T_hover[i]:
                     T_M1[i] = 0.05*T_hover[i]
-                ef_M1.append((1/(cnst * np.sqrt(T_M1[i]*9.81/(2*rho*A) ) )*1000/9.81))
+                ef_M1.append((1/(cnst * np.sqrt(T_M1[i]*g/(2*rho*A) ) )*1000/g))
                 Preq_M1.append(1000 * T_M1[i]/ef_M1[i])
                 
                 T_M2.append(T_hover[i] - 0.1548 * v[i] - 0.0423 * w[i] + 0.8315 * vz[i])
                 if T_M2[i] < 0.05*T_hover[i]:
                     T_M2[i] = 0.05*T_hover[i]
-                ef_M2.append((1/(cnst * np.sqrt(T_M2[i]*9.81/(2*rho*A) ) )*1000/9.81))
+                ef_M2.append((1/(cnst * np.sqrt(T_M2[i]*g/(2*rho*A) ) )*1000/g))
                 Preq_M2.append(1000 * T_M2[i]/ef_M2[i])
                 
                 T_M3.append(T_hover[i] + 0.1548 * v[i] + 0.0423 * w[i] + 0.8315 * vz[i])
                 if T_M3[i] < 0.05*T_hover[i]:
                     T_M3[i] = 0.05*T_hover[i]
-                ef_M3.append((1/(cnst * np.sqrt(T_M3[i]*9.81/(2*rho*A) ) )*1000/9.81))
+                ef_M3.append((1/(cnst * np.sqrt(T_M3[i]*g/(2*rho*A) ) )*1000/g))
                 Preq_M3.append(1000 * T_M3[i]/ef_M3[i])
                 
                 T_M4.append(T_hover[i] + 0.1548 * v[i] - 0.0423 * w[i] + 0.8315 * vz[i])
                 if T_M4[i] < 0.05*T_hover[i]:
                     T_M4[i] = 0.05*T_hover[i]
-                ef_M4.append((1/(cnst * np.sqrt(T_M4[i]*9.81/(2*rho*A) ) )*1000/9.81))
+                ef_M4.append((1/(cnst * np.sqrt(T_M4[i]*g/(2*rho*A) ) )*1000/g))
                 Preq_M4.append(1000 * T_M4[i]/ef_M4[i])
                 
                 Preq_prop.append(Preq_M1[i] +  Preq_M2[i] + Preq_M3[i] + Preq_M4[i])
@@ -703,7 +696,7 @@ while M_pulv_max <= M_pulv_lim:
                 area_pulv_local.append(area_pulv_local[-1])
                 
             E_bat.append(E_bat[i] - Preq_tot[i]*dt/3600)
-            P_hover = (n_motores*(COAXIAL_80*(1000 * (M_tot[i]/n_motores)/(1000/9.81/(cnst*(np.sqrt((M_tot[i]/n_motores)*9.81/(2*rho*A))))))))
+            P_hover = (n_motores*(COAXIAL_80*(1000 * (M_tot[i]/n_motores)/(1000/g/(cnst*(np.sqrt((M_tot[i]/n_motores)*g/(2*rho*A))))))))
             autonomia.append(3600*E_bat[i]/(Preq_tot[i]))  #(Preq_tot[i]))
             # print(E_bat[i],(Preq_tot[i]*dt/3600))
             
@@ -726,7 +719,8 @@ while M_pulv_max <= M_pulv_lim:
             t.append(t[i] + dt)
             t_de_voo.append(t_de_voo[i] + dt)
     
-#OP[I+1] ==============================================================================================# 
+# OPERAÇÃO SEGUINTE
+#=============================================================================#  
             if (OP[i] == "RTL FIM"):
                 if (x[i+1] == 0 and y[i+1] == 0 and z[i+1] == 0):
                     OP.append("FIM")
@@ -771,8 +765,8 @@ while M_pulv_max <= M_pulv_lim:
                             vazao = Taxa/10000 * (v_pulv*60*faixa) # [L ou kg/min]
                             Massa_Total = M_bat + M_vazio + M_Pulv # [kg]
                             Massinha = np.linspace(M_bat+M_vazio,Massa_Total,1000)
-                            W = COAXIAL_80*Massinha*1000/((1000/9.80665/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massinha*9.80665/(2*rho*A_helice*n_motores)))))) # [W]
-                            energia_ida = (COAXIAL_80*Massa_Total*1000/((1000/9.80665/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*9.80665/(2*rho*A_helice*n_motores)))))))*((((x_rtl)**2+(y_rtl)**2)**0.5)/v_desloc)/3600
+                            W = COAXIAL_80*Massinha*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massinha*g/(2*rho*A_helice*n_motores)))))) # [W]
+                            energia_ida = (COAXIAL_80*Massa_Total*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*g/(2*rho*A_helice*n_motores)))))))*((((x_rtl)**2+(y_rtl)**2)**0.5)/v_desloc)/3600
                             energia_tanque = np.trapz(W, Massinha)/(vazao*60) # [Wh]
                             
                             distancia_p_percorrer = (M_Pulv/vazao)*v_pulv*60
@@ -798,13 +792,13 @@ while M_pulv_max <= M_pulv_lim:
                             else:
                                 delta_y = np.cos(np.radians(theta_rtl +180))*delta_y
                             
-                            energia_subida = ((Massa_Total*9.80665*zi)/3600) + (zi/v_subida)*((COAXIAL_80*Massa_Total*1000/((1000/9.80665/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*9.80665/(2*rho*A_helice*n_motores))))))))/3600
-                            energia_descida =  - (((M_bat + M_vazio))*9.80665*zi/3600) + (zi/v_subida)*(COAXIAL_80*(M_bat+M_vazio)*1000/((1000/9.80665/(((1/(eta_escmotor*eta_helice)))*(np.sqrt((M_bat+M_vazio)*9.80665/(2*rho*A_helice*n_motores)))))))/3600
+                            energia_subida = ((Massa_Total*g*zi)/3600) + (zi/v_subida)*((COAXIAL_80*Massa_Total*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*g/(2*rho*A_helice*n_motores))))))))/3600
+                            energia_descida =  - (((M_bat + M_vazio))*g*zi/3600) + (zi/v_subida)*(COAXIAL_80*(M_bat+M_vazio)*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt((M_bat+M_vazio)*g/(2*rho*A_helice*n_motores)))))))/3600
                             energia_curva = ((Massa_Total*(v_pulv**2)/2)/3600)
                             numero_curvas =  delta_x/faixa 
                             energia_curvas = numero_curvas*energia_curva
                             
-                            # energia_volta = (COAXIAL_80*(M_bat+M_vazio)*1000/((1000/9.80665/(((1/(eta_escmotor*eta_helice)))*(np.sqrt((M_bat+M_vazio)*9.80665/(2*rho*A_helice*n_motores)))))))*((((x_rtl+delta_x)**2+(y_rtl+delta_y)**2)**0.5)/v_desloc)/3600
+                            # energia_volta = (COAXIAL_80*(M_bat+M_vazio)*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt((M_bat+M_vazio)*g/(2*rho*A_helice*n_motores)))))))*((((x_rtl+delta_x)**2+(y_rtl+delta_y)**2)**0.5)/v_desloc)/3600
                             energia_voo = (energia_tanque + energia_ida + energia_volta + energia_subida + energia_descida + energia_curvas)*fator_erro_otimização
                             
                         
@@ -879,8 +873,8 @@ while M_pulv_max <= M_pulv_lim:
                             vazao = Taxa/10000 * (v_pulv*60*faixa) # [L ou kg/min]
                             Massa_Total = M_bat + M_vazio + M_Pulv # [kg]
                             Massinha = np.linspace(M_bat+M_vazio,Massa_Total,1000)
-                            W = COAXIAL_80*Massinha*1000/((1000/9.80665/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massinha*9.80665/(2*rho*A_helice*n_motores)))))) # [W]
-                            energia_ida = (COAXIAL_80*Massa_Total*1000/((1000/9.80665/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*9.80665/(2*rho*A_helice*n_motores)))))))*((((x_rtl)**2+(y_rtl)**2)**0.5)/v_desloc)/3600
+                            W = COAXIAL_80*Massinha*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massinha*g/(2*rho*A_helice*n_motores)))))) # [W]
+                            energia_ida = (COAXIAL_80*Massa_Total*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*g/(2*rho*A_helice*n_motores)))))))*((((x_rtl)**2+(y_rtl)**2)**0.5)/v_desloc)/3600
                             energia_tanque = np.trapz(W, Massinha)/(vazao*60) # [Wh]
                             
                             distancia_p_percorrer = (M_Pulv/vazao)*v_pulv*60
@@ -906,13 +900,13 @@ while M_pulv_max <= M_pulv_lim:
                             else:
                                 delta_y = np.cos(np.radians(theta_rtl +180))*delta_y
                             
-                            energia_subida = ((Massa_Total*9.80665*zi)/3600) + (zi/v_subida)*((COAXIAL_80*Massa_Total*1000/((1000/9.80665/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*9.80665/(2*rho*A_helice*n_motores))))))))/3600
-                            energia_descida =  - (((M_bat + M_vazio))*9.80665*zi/3600) + (zi/v_subida)*(COAXIAL_80*(M_bat+M_vazio)*1000/((1000/9.80665/(((1/(eta_escmotor*eta_helice)))*(np.sqrt((M_bat+M_vazio)*9.80665/(2*rho*A_helice*n_motores)))))))/3600
+                            energia_subida = ((Massa_Total*g*zi)/3600) + (zi/v_subida)*((COAXIAL_80*Massa_Total*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*g/(2*rho*A_helice*n_motores))))))))/3600
+                            energia_descida =  - (((M_bat + M_vazio))*g*zi/3600) + (zi/v_subida)*(COAXIAL_80*(M_bat+M_vazio)*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt((M_bat+M_vazio)*g/(2*rho*A_helice*n_motores)))))))/3600
                             energia_curva = ((Massa_Total*(v_pulv**2)/2)/3600)
                             numero_curvas =  delta_x/faixa 
                             energia_curvas = numero_curvas*energia_curva
                             
-                            # energia_volta = (COAXIAL_80*(M_bat+M_vazio)*1000/((1000/9.80665/(((1/(eta_escmotor*eta_helice)))*(np.sqrt((M_bat+M_vazio)*9.80665/(2*rho*A_helice*n_motores)))))))*((((x_rtl+delta_x)**2+(y_rtl+delta_y)**2)**0.5)/v_desloc)/3600
+                            # energia_volta = (COAXIAL_80*(M_bat+M_vazio)*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt((M_bat+M_vazio)*g/(2*rho*A_helice*n_motores)))))))*((((x_rtl+delta_x)**2+(y_rtl+delta_y)**2)**0.5)/v_desloc)/3600
                             energia_voo = (energia_tanque + energia_ida + energia_volta + energia_subida + energia_descida + energia_curvas)*fator_erro_otimização
                         
                         M_Pulv = M_Pulv-0.5
