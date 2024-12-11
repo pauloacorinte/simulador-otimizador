@@ -18,7 +18,7 @@ v_pulv = 7 # [m/s]
 v_deslocamento = 10 # [m/s] 
 faixa = 10 # [m] 
 celulas = 14 # [m/s] 
-cap_bat = 30000*0.804 # [m/Ah]*útil                                                                                                     
+cap_bat = 30000*0.81 # [m/Ah]*útil                                                                                                     
 M_vazio = 38 # [kg] 
 M_bat = 12.9 # [kg] 
 COAXIAL_80 = 1.397542375147 # Sobressalência de potência do coaxial
@@ -180,6 +180,7 @@ while M_pulv_max <= M_pulv_lim:
     z = []; z_rtl = 0
     theta = []; theta_rtl = 0
     alpha = 0
+    alpha2 = 0
     x.append(0.0)
     y.append(0.0)
     z.append(0.0)
@@ -366,12 +367,12 @@ while M_pulv_max <= M_pulv_lim:
                 v.append(0)
                 w.append(0)
                 STATUS.append("SUBIDA")
-            elif theta_rtl == theta_dir and theta[i] > -alpha:
+            elif theta_rtl == theta_dir and theta[i] > -alpha2:
                 vz.append(0.0)
                 v.append(0.0)
                 w.append(-omega)
                 STATUS.append("YAW-")
-            elif theta_rtl == theta_dir + 180 and theta[i] < alpha + 180:
+            elif theta_rtl == theta_dir + 180 and theta[i] < alpha2 + 180:
                 vz.append(0.0)
                 v.append(0.0)
                 w.append(omega)
@@ -402,13 +403,13 @@ while M_pulv_max <= M_pulv_lim:
                 STATUS.append("DESCIDA")
 
             if STATUS[i] == "YAW+":
-                if (theta[i] + w[i] * dt > alpha + 180):
-                    theta.append(alpha + 180)
+                if (theta[i] + w[i] * dt > alpha2 + 180):
+                    theta.append(alpha2 + 180)
                 else:
                     theta.append(theta[i] + w[i] * dt)
             elif STATUS[i] == "YAW-":
-                if (theta[i] + w[i] * dt < -alpha):
-                    theta.append(-alpha)
+                if (theta[i] + w[i] * dt < -alpha2):
+                    theta.append(-alpha2)
                 else:
                     theta.append(theta[i] + w[i] * dt)
             else:
@@ -704,7 +705,16 @@ while M_pulv_max <= M_pulv_lim:
             else:
                 OP.append("RTL FIM")
                 
-        elif((x[i+1] >= X + x0 or voo == len(massa_joao)) and (STATUS[i] == "PITCH" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "PITCH desacelerando")):
+        elif((x[i+1] >= X + x0) and (STATUS[i] == "PITCH" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "PITCH desacelerando")) and SETAR_TANQUE == "NAO":
+            theta_rtl = theta[i+1]
+            alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
+            x_rtl = x[i+1]
+            y_rtl = y[i+1]
+            z_rtl = z_deslocando
+            n_passada = 1 + n_passada
+            OP.append("RTL FIM")
+            
+        elif((voo == len(massa_joao)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and (STATUS[i] == "PITCH" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "PITCH desacelerando")) and SETAR_TANQUE == "SIM":
             theta_rtl = theta[i+1]
             alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
             x_rtl = x[i+1]
@@ -942,7 +952,10 @@ while M_pulv_max <= M_pulv_lim:
                 x_rtl = x[i+1]
                 y_rtl = y[i+1]
                 z_rtl = z_deslocando
-                OP.append("RTL BAT") 
+                OP.append("RTL BAT")
+            elif (OP[i] == "RTL BAT") and STATUS[i] == "PITCH desacelerando" and (abs(theta[i+1]) - 0 < 0.001 or abs(theta[i+1]) - 180 < 0.0001):
+                OP.append("RTL BAT")
+                alpha2 = math.atan2(x[i],y[i])*180/math.pi
             else:
                 OP.append("RTL BAT")
 
@@ -1021,17 +1034,17 @@ Ebat_retorno = [(x / E_bat[0]) * 100 for x in Ebat_retorno];POR_VOO_Ebat_Retorno
 POR_VOO_T_VOO = np.array(t_voo) / 60
 POR_VOO_T_VOO2 = [POR_VOO_T_VOO[0]] + [POR_VOO_T_VOO[i] - POR_VOO_T_VOO[i-1] for i in range(1, len(POR_VOO_T_VOO))]
 
-andamento_por_voo = pd.DataFrame({
-    "Voo": np.arange(1, len(POR_VOO_T_VOO2) + 1),  # Cria uma sequência de voos
-    'Tempo Total [h]': POR_VOO_Tempo,
-    'X RTL [m]': POR_VOO_X_rtl,
-    'Y RTL [m]': POR_VOO_Y_rtl,
-    'D RTL [m]': POR_VOO_D_rtl,
-    'Bateria Retorno [%]': POR_VOO_Ebat_Retorno,
-    'Tanque Saída [L]': POR_VOO_Massa,
-    'Tanque Retorno [L]': POR_VOO_M_Retorno,
-    'Produtividade [ha]': POR_VOO_Produtividade,
-    'Tempo de Voo [min]': POR_VOO_T_VOO2})
+# andamento_por_voo = pd.DataFrame({
+#     "Voo": np.arange(1, len(POR_VOO_T_VOO2) + 1),  # Cria uma sequência de voos
+#     'Tempo Total [h]': POR_VOO_Tempo,
+#     'X RTL [m]': POR_VOO_X_rtl,
+#     'Y RTL [m]': POR_VOO_Y_rtl,
+#     'D RTL [m]': POR_VOO_D_rtl,
+#     'Bateria Retorno [%]': POR_VOO_Ebat_Retorno,
+#     'Tanque Saída [L]': POR_VOO_Massa,
+#     'Tanque Retorno [L]': POR_VOO_M_Retorno,
+#     'Produtividade [ha]': POR_VOO_Produtividade,
+#     'Tempo de Voo [min]': POR_VOO_T_VOO2})
 
 # ANDAMENTO DA OPERAÇÃO DISCRETIZADO
 #=============================================================================#
