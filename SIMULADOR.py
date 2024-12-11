@@ -16,7 +16,7 @@ rho = 1.225 # [g/cm3]
 Taxa = 10.0 # [L/ha]      
 v_pulv = 7 # [m/s] 
 v_deslocamento = 10 # [m/s] 
-faixa = 10 # [m] 
+faixa = 10.85 # [m] 
 celulas = 14 # [m/s] 
 cap_bat = 30000*0.81 # [m/Ah]*útil                                                                                                     
 M_vazio = 38 # [kg] 
@@ -705,13 +705,15 @@ while M_pulv_max <= M_pulv_lim:
             else:
                 OP.append("RTL FIM")
                 
-        elif((voo <= len(massa_joao)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and SETAR_TANQUE == "SIM") or ((x[i+1] >= X + x0) and (abs(theta[i+1]) == 0 or abs(theta[i+1]) == 180) and SETAR_TANQUE == "NAO"):
-            theta_rtl = theta[i+1]
+        elif((voo <= len(massa_joao)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and SETAR_TANQUE == "SIM") or ((x[i+1] >= math.ceil(X/faixa)*faixa + x0 - faixa/2) and SETAR_TANQUE == "NAO"):
+            theta_rtl = 0 #theta[i+1]
             alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
             if theta[i] == 0:
                 alpha2 = math.atan2(x[i+1],( y[i+1] + (v[i]**2)/(2*acel) ))*180/math.pi
             elif theta[i] == 180:
                 alpha2 = math.atan2(x[i+1],( y[i+1] - (v[i]**2)/(2*acel) ))*180/math.pi
+            else:
+                alpha2 = math.atan2(x[i+1],(y[i+1]))*180/math.pi
             x_rtl = x[i+1]
             y_rtl = y[i+1]
             z_rtl = z_deslocando
@@ -1061,7 +1063,6 @@ t = np.array(t)
 z = np.array(z)
 theta = np.array(theta)
 STATUS.append("FIM")
-n_passada = n_passada + 1
 area_pulv_local = np.array(area_pulv_local)/10000
 
 andamento_operacao = pd.DataFrame({
