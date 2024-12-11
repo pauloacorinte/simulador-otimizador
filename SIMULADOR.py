@@ -7,7 +7,6 @@ import plotly.graph_objects as go
 # INPUTS PRINCIPAIS
 #=============================================================================#  
 
-horas_maximas = 5 #[h]
 n_motores = 8 # Número motores
 Diametro = 54 # [in]
 eta_escmotor = 0.848 # Eficiência ESC e Motor
@@ -16,7 +15,7 @@ rho = 1.225 # [g/cm3]
 Taxa = 10.0 # [L/ha]      
 v_pulv = 7 # [m/s] 
 v_deslocamento = 10 # [m/s] 
-faixa = 10.85 # [m] 
+faixa = 11 # [m] 
 celulas = 14 # [m/s] 
 cap_bat = 30000*0.81 # [m/Ah]*útil                                                                                                     
 M_vazio = 38 # [kg] 
@@ -179,8 +178,8 @@ while M_pulv_max <= M_pulv_lim:
     y = []; y_rtl = 0
     z = []; z_rtl = 0
     theta = []; theta_rtl = 0
-    alpha = 0
-    alpha2 = 0
+    alpha_ida = 0
+    alpha_volta = 0
     x.append(0.0)
     y.append(0.0)
     z.append(0.0)
@@ -367,12 +366,12 @@ while M_pulv_max <= M_pulv_lim:
                 v.append(0)
                 w.append(0)
                 STATUS.append("SUBIDA")
-            elif theta_rtl == theta_dir and theta[i] > -alpha2:
+            elif theta_rtl == theta_dir and theta[i] > -alpha_volta:
                 vz.append(0.0)
                 v.append(0.0)
                 w.append(-omega)
                 STATUS.append("YAW-")
-            elif theta_rtl == theta_dir + 180 and theta[i] < alpha2 + 180:
+            elif theta_rtl == theta_dir + 180 and theta[i] < alpha_volta + 180:
                 vz.append(0.0)
                 v.append(0.0)
                 w.append(omega)
@@ -403,13 +402,13 @@ while M_pulv_max <= M_pulv_lim:
                 STATUS.append("DESCIDA")
 
             if STATUS[i] == "YAW+":
-                if (theta[i] + w[i] * dt > alpha2 + 180):
-                    theta.append(alpha2 + 180)
+                if (theta[i] + w[i] * dt > alpha_volta + 180):
+                    theta.append(alpha_volta + 180)
                 else:
                     theta.append(theta[i] + w[i] * dt)
             elif STATUS[i] == "YAW-":
-                if (theta[i] + w[i] * dt < -alpha2):
-                    theta.append(-alpha2)
+                if (theta[i] + w[i] * dt < -alpha_volta):
+                    theta.append(-alpha_volta)
                 else:
                     theta.append(theta[i] + w[i] * dt)
             else:
@@ -421,24 +420,19 @@ while M_pulv_max <= M_pulv_lim:
                 z.append(z[i] + vz[i] * dt)
                 
             if STATUS[i] == "PITCH desacelerando" and abs(z[i] - z_pulverizando) <= 0.001:
-                
                 if (x[i] - abs(v[i]*math.sin(math.radians(theta[i])) * dt) < 0):
                     x.append(0)
                 else:
                     x.append(x[i] - abs(v[i]*math.sin(math.radians(theta[i])) * dt))
-                    
                 if (y[i] - abs(v[i] * math.cos(math.radians(theta[i])) * dt) < 0):
                     y.append(0)
                 else:
                     y.append(y[i] + (v[i] * math.cos(math.radians(theta[i])) * dt))
-                
             else:
-                
                 if (x[i] - abs(v[i]*math.sin(math.radians(theta[i])) * dt) < 0):
                     x.append(0)
                 else:
                     x.append(x[i] - abs(v[i]*math.sin(math.radians(theta[i])) * dt))
-                    
                 if (y[i] - abs(v[i] * math.cos(math.radians(theta[i])) * dt) < 0):
                     y.append(0)
                 else:
@@ -448,7 +442,6 @@ while M_pulv_max <= M_pulv_lim:
 #=============================================================================#    
 
         if OP[i] == "RTW":
-            
             if SETAR_POSICAO == "SIM":
                 if perna_rtw[iteracao_posicao]%2 == 0:
                     THETA_rtw = 180
@@ -457,7 +450,7 @@ while M_pulv_max <= M_pulv_lim:
                 theta_rtl = THETA_rtw
                 x_rtl = X_rtw[iteracao_posicao]
                 y_rtl = Y_rtw[iteracao_posicao]
-                alpha = math.atan2(x_rtl,y_rtl)*180/math.pi
+                alpha_ida = math.atan2(x_rtl,y_rtl)*180/math.pi
                 n = perna_rtw[iteracao_posicao]
             
             if z[i] < z_rtl:
@@ -465,12 +458,12 @@ while M_pulv_max <= M_pulv_lim:
                 v.append(0.0)
                 w.append(0.0)
                 STATUS.append("SUBIDA")
-            elif theta_rtl == theta_dir and theta[i] > alpha and x[i] == 0:
+            elif theta_rtl == theta_dir and theta[i] > alpha_ida and x[i] == 0:
                 vz.append(0.0)
                 v.append(0.0)
                 w.append(-omega)
                 STATUS.append("YAW-")
-            elif (theta_rtl == theta_dir + 180) and theta[i] > alpha and x[i] < x_rtl:
+            elif (theta_rtl == theta_dir + 180) and theta[i] > alpha_ida and x[i] < x_rtl:
                 vz.append(0.0)
                 v.append(0.0)
                 w.append(-omega)
@@ -505,8 +498,8 @@ while M_pulv_max <= M_pulv_lim:
                   w.append(omega)
                   STATUS.append("YAW+")
                      
-            if STATUS[i] == "YAW-" and theta[i] + w[i] * dt < alpha:
-                theta.append(alpha)
+            if STATUS[i] == "YAW-" and theta[i] + w[i] * dt < alpha_ida:
+                theta.append(alpha_ida)
             elif theta_rtl == theta_dir and STATUS[i] == "YAW-2" and theta[i] + w[i] * dt < theta_rtl:
                 theta.append(theta_rtl)
             elif theta_rtl == theta_dir + 180 and STATUS[i] == "YAW+" and theta[i] + w[i] * dt > theta_rtl:
@@ -678,7 +671,7 @@ while M_pulv_max <= M_pulv_lim:
         else:
             t_manobra.append(t_manobra[i])
             
-# OPERAÇÃO SEGUINTE
+# OPERAÇÃO SEGUINTE - NOVOS PARÂMETROS
 #=============================================================================#
 
         M_tot.append(M_vazio + M_pulv[i+1] + M_bat)
@@ -689,6 +682,9 @@ while M_pulv_max <= M_pulv_lim:
         t.append(t[i] + dt)
         voo_cor.append(voo)
         t_de_voo.append(t_de_voo[i] + dt)
+        
+# OPERAÇÃO SEGUINTE - RTL FIM
+#=============================================================================#
 
         if (OP[i] == "RTL FIM"):
             if (x[i+1] == 0 and y[i+1] == 0 and z[i+1] == 0):
@@ -706,259 +702,208 @@ while M_pulv_max <= M_pulv_lim:
                 OP.append("RTL FIM")
                 
         elif((voo <= len(massa_joao)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and SETAR_TANQUE == "SIM") or ((x[i+1] >= math.ceil(X/faixa)*faixa + x0 - faixa/2) and SETAR_TANQUE == "NAO"):
-            theta_rtl = 0 #theta[i+1]
-            alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
+            theta_rtl = 0
+            alpha_ida = math.atan2(x[i+1],y[i+1])*180/math.pi
             if theta[i] == 0:
-                alpha2 = math.atan2(x[i+1],( y[i+1] + (v[i]**2)/(2*acel) ))*180/math.pi
+                alpha_volta = math.atan2(x[i+1],( y[i+1] + (v[i]**2)/(2*acel) ))*180/math.pi
             elif theta[i] == 180:
-                alpha2 = math.atan2(x[i+1],( y[i+1] - (v[i]**2)/(2*acel) ))*180/math.pi
+                alpha_volta = math.atan2(x[i+1],( y[i+1] - (v[i]**2)/(2*acel) ))*180/math.pi
             else:
-                alpha2 = math.atan2(x[i+1],(y[i+1]))*180/math.pi
+                alpha_volta = math.atan2(x[i+1],(y[i+1]))*180/math.pi
             x_rtl = x[i+1]
             y_rtl = y[i+1]
             z_rtl = z_deslocando
             n_passada = 1 + n_passada
             OP.append("RTL FIM") 
             
+# OPERAÇÃO SEGUINTE - RTL CALDA
+#=============================================================================#
+            
         elif(M_pulv[i+1] == 0 and (STATUS[i] != "YAW+" and STATUS[i] != "YAW-" )):
             if SETAR_POSICAO == "SIM":
                 if iteracao_posicao == len(X_rtw)-1:
                     OP.append("RTL FIM")
             
-            if (x[i+1] == 0 and y[i+1] == 0 and z[i+1] == 0):
-                iii +=1
+            elif (x[i+1] == 0 and y[i+1] == 0 and z[i+1] == 0):
+                if theta[i+1] < 0:
+                    theta[i+1] = theta[i+1] + 180 
+                    
                 if OTIMIZAR_TANQUE == "SIM":
-                
                     energia_tanque = 0
-                    energia_bateria = (cap_bat/1000)*3.7*celulas
                     energia_ida = 0
                     energia_voo = 0
                     energia_volta = 0
-                    M_Pulv=0
-                    while energia_voo <= energia_bateria*(1-bateria_limite) and M_pulv_max>=M_Pulv+0.5:
-                        
+                    M_Pulv = 0
+                    
+                    while energia_voo <= E_bat_max*(1-bateria_limite) and M_pulv_max>=M_Pulv+0.5:
                         M_Pulv = M_Pulv+0.5
-                        A_helice = np.pi*(0.5*Diametro*0.0254)**2 # [m^2]
-                        vazao = Taxa/10000 * (v_pulv*60*faixa) # [L ou kg/min]
-                        Massa_Total = M_bat + M_vazio + M_Pulv # [kg]
+                        Massa_Total = M_bat + M_vazio + M_Pulv
                         Massinha = np.linspace(M_bat+M_vazio,Massa_Total,1000)
-                        W = COAXIAL_80*Massinha*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massinha*g/(2*rho*A_helice*n_motores)))))) # [W]
-                        energia_ida = (COAXIAL_80*Massa_Total*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*g/(2*rho*A_helice*n_motores)))))))*((((x_rtl)**2+(y_rtl)**2)**0.5)/v_desloc)/3600
-                        energia_tanque = np.trapz(W, Massinha)/(vazao*60) # [Wh]
-                        
+                        W = COAXIAL_80*Massinha*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massinha*g/(2*rho*A*n_motores)))))) # [W]
+                        energia_ida = (COAXIAL_80*Massa_Total*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*g/(2*rho*A*n_motores)))))))*((((x_rtl)**2+(y_rtl)**2)**0.5)/v_desloc)/3600
+                        energia_tanque = np.trapz(W, Massinha)/(vazao*60)
                         distancia_p_percorrer = (M_Pulv/vazao)*v_pulv*60
-                        distancia_talhao = Y #+ np.pi*faixa/2
-                        
                         if theta_rtl == 0:
-                            if distancia_p_percorrer > distancia_talhao - y_rtl:
-                                delta_x = (1 + int((distancia_p_percorrer - (distancia_talhao - y_rtl))/distancia_talhao))*faixa
-                                delta_y = ((distancia_p_percorrer - (distancia_talhao - y_rtl))/distancia_talhao - int((distancia_p_percorrer - (distancia_talhao - y_rtl))/distancia_talhao))*distancia_talhao
+                            if distancia_p_percorrer > Y - y_rtl:
+                                delta_x = (1 + int((distancia_p_percorrer - (Y - y_rtl))/Y))*faixa
+                                delta_y = ((distancia_p_percorrer - (Y - y_rtl))/Y - int((distancia_p_percorrer - (Y - y_rtl))/Y))*Y
                             else:
                                 delta_x = 0
                                 delta_y = distancia_p_percorrer
                         elif theta_rtl == 180:
                             if distancia_p_percorrer > y_rtl:
-                                delta_x = (1 + int((distancia_p_percorrer - (y_rtl))/distancia_talhao))*faixa
-                                delta_y = ((distancia_p_percorrer - (y_rtl))/distancia_talhao - int((distancia_p_percorrer - (y_rtl))/distancia_talhao))*distancia_talhao
+                                delta_x = (1 + int((distancia_p_percorrer - (y_rtl))/Y))*faixa
+                                delta_y = ((distancia_p_percorrer - (y_rtl))/Y - int((distancia_p_percorrer - (y_rtl))/Y))*Y
                             else:
                                 delta_x = 0
                                 delta_y = distancia_p_percorrer 
-                        
                         if delta_x/faixa % 2 == 0:
                             delta_y = np.cos(np.radians(theta_rtl))*delta_y
                         else:
                             delta_y = np.cos(np.radians(theta_rtl +180))*delta_y
-                        
-                        energia_subida = ((Massa_Total*g*zi)/3600) + (zi/v_subida)*((COAXIAL_80*Massa_Total*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*g/(2*rho*A_helice*n_motores))))))))/3600
-                        energia_descida =  - (((M_bat + M_vazio))*g*zi/3600) + (zi/v_subida)*(COAXIAL_80*(M_bat+M_vazio)*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt((M_bat+M_vazio)*g/(2*rho*A_helice*n_motores)))))))/3600
+                        energia_subida = ((Massa_Total*g*zi)/3600) + (zi/v_subida)*((COAXIAL_80*Massa_Total*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*g/(2*rho*A*n_motores))))))))/3600
+                        energia_descida =  - (((M_bat + M_vazio))*g*zi/3600) + (zi/v_subida)*(COAXIAL_80*(M_bat+M_vazio)*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt((M_bat+M_vazio)*g/(2*rho*A*n_motores)))))))/3600
                         energia_curva = ((Massa_Total*(v_pulv**2)/2)/3600)
-                        numero_curvas =  delta_x/faixa 
-                        energia_curvas = numero_curvas*energia_curva
-                        
-                        # energia_volta = (COAXIAL_80*(M_bat+M_vazio)*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt((M_bat+M_vazio)*g/(2*rho*A_helice*n_motores)))))))*((((x_rtl+delta_x)**2+(y_rtl+delta_y)**2)**0.5)/v_desloc)/3600
+                        energia_curvas = energia_curva*delta_x/faixa
                         energia_voo = (energia_tanque + energia_ida + energia_volta + energia_subida + energia_descida + energia_curvas)*fator_erro_otimização
                         
-                    
-                    Delta_x.append(delta_x + x_rtl)
-                    Delta_y.append(delta_y + y_rtl)
                     Massa_por_voo.append(M_Pulv)
                     M_pulv[i+1] = M_Pulv
-                    
-                    
-                    
-                    
+
                 elif OTIMIZAR_TANQUE == "NAO":
                     if SETAR_TANQUE == "SIM":
+                        iii +=1
                         M_Pulv[i+1] = massa_joao[iii]
                         Massa_por_voo.append(massa_joao[iii])
                     else:
                         M_Pulv[i+1] = M_pulv_min
                         Massa_por_voo.append(M_pulv_min)
-                    
-                    
-                    
-                    
-                indice_voo.append(i+1)    
-                OP.append("RTW")
-                t_abs = 30
-                M_Pulv = M_pulv_max
-                
-                if voo == 1:
-                    produtiv_por_voo.append(dist_pulv[i]*faixa)
-                    X_rtl_por_voo.append(x_rtl)
-                    Y_rtl_por_voo.append(y_rtl)
-                    t_voo.append(t_de_voo[i])
-                    Tempo_por_voo.append(t[len(t)-1])
-                else:
-                    produtiv_por_voo.append(dist_pulv[i]*faixa)
-                    X_rtl_por_voo.append(x_rtl)
-                    Y_rtl_por_voo.append(y_rtl)
-                    t_voo.append(t_de_voo[i])
-                    Tempo_por_voo.append(t[len(t)-1])
-                    iteracao_posicao = iteracao_posicao + 1
-                voo = voo + 1
-                     
-                
+
+                produtiv_por_voo.append(dist_pulv[i]*faixa)
+                X_rtl_por_voo.append(x_rtl)
+                Y_rtl_por_voo.append(y_rtl)
+                t_voo.append(t_de_voo[i])
+                Tempo_por_voo.append(t[len(t)-1])
+                iteracao_posicao = iteracao_posicao + 1
+                n_abs = n_abs + 1
+                t[i+1] = t[i+1] + t_abs_calda
+                M_Pulv = M_pulv_max              
+                indice_voo.append(i+1) 
                 E_bat[i+1] = E_bat_max
-                if theta[i+1] < 0:
-                    theta[i+1] = theta[i+1] + 180         
+                M_retorno.append(M_pulv[i])
+                Ebat_retorno.append(E_bat[i])
+                voo = voo + 1
+                OP.append("RTW")
+                    
             elif (OP[i] == "PULVERIZANDO" or OP[i] == "DESLOCANDO"):
                 theta_rtl = theta[i+1]
-                alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
+                alpha_ida = math.atan2(x[i+1],y[i+1])*180/math.pi
                 if theta[i] == 0:
-                    alpha2 = math.atan2(x[i+1],( y[i+1] + (v[i]**2)/(2*acel) ))*180/math.pi
+                    alpha_volta = math.atan2(x[i+1],( y[i+1] + (v[i]**2)/(2*acel) ))*180/math.pi
                 elif theta[i] == 180:
-                    alpha2 = math.atan2(x[i+1],( y[i+1] - (v[i]**2)/(2*acel) ))*180/math.pi
+                    alpha_volta = math.atan2(x[i+1],( y[i+1] - (v[i]**2)/(2*acel) ))*180/math.pi
                 x_rtl = x[i+1]
                 y_rtl = y[i+1]
                 z_rtl = z_deslocando
                 OP.append("RTL CALDA")
             else:
                 OP.append("RTL CALDA")
+                
+# OPERAÇÃO SEGUINTE - RTL BAT
+#=============================================================================#
             
         elif(OP[i] == "RTL BAT" or (E_bat[i] <= bateria_limite*E_bat[0] and STATUS[i] != "YAW+" and STATUS[i] !="YAW-")):
-            
-            
-            if (x[i+1] == 0 and y[i+1] == 0 and z[i+1] == 0):
-                iii +=1
-                indice_voo.append(i+1) 
-                OP.append("RTW")
-                t_abs = 30
-                E_bat[i+1] = E_bat_max
-                M_retorno.append(M_pulv[i])
-                Ebat_retorno.append(E_bat[i])
-                
-                
-                if SETAR_POSICAO == "SIM":
-                    if iteracao_posicao == len(X_rtw)-1:
-                        OP.append("RTL FIM")
-                
-                elif OTIMIZAR_TANQUE == "NAO":
-                    if SETAR_TANQUE == "SIM":
-                        M_pulv[i+1] = massa_joao[iii]
-                        Massa_por_voo.append(massa_joao[iii])
-                    else:
-                        M_pulv[i+1] = M_pulv_min
-                        Massa_por_voo.append(M_pulv_min)
+            if SETAR_POSICAO == "SIM":
+                if iteracao_posicao == len(X_rtw)-1:
+                    OP.append("RTL FIM")
                     
-                elif OTIMIZAR_TANQUE == "SIM":
+            elif (x[i+1] == 0 and y[i+1] == 0 and z[i+1] == 0):
+                if theta[i+1] < 0:
+                    theta[i+1] = theta[i+1] + 180
                 
+                if OTIMIZAR_TANQUE == "SIM":
                     energia_tanque = 0
-                    energia_bateria = (cap_bat/1000)*3.7*celulas
                     energia_ida = 0
                     energia_voo = 0
                     energia_volta = 0
                     M_Pulv = 0
-                    while energia_voo <= energia_bateria*(1-bateria_limite) and M_pulv_max >= M_Pulv+0.5:
-                        
+                    
+                    while energia_voo <= E_bat_max*(1-bateria_limite) and M_pulv_max>=M_Pulv+0.5:
                         M_Pulv = M_Pulv+0.5
-                        A_helice = np.pi*(0.5*Diametro*0.0254)**2 # [m^2]
-                        vazao = Taxa/10000 * (v_pulv*60*faixa) # [L ou kg/min]
-                        Massa_Total = M_bat + M_vazio + M_Pulv # [kg]
+                        Massa_Total = M_bat + M_vazio + M_Pulv
                         Massinha = np.linspace(M_bat+M_vazio,Massa_Total,1000)
-                        W = COAXIAL_80*Massinha*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massinha*g/(2*rho*A_helice*n_motores)))))) # [W]
-                        energia_ida = (COAXIAL_80*Massa_Total*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*g/(2*rho*A_helice*n_motores)))))))*((((x_rtl)**2+(y_rtl)**2)**0.5)/v_desloc)/3600
-                        energia_tanque = np.trapz(W, Massinha)/(vazao*60) # [Wh]
-                        
+                        W = COAXIAL_80*Massinha*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massinha*g/(2*rho*A*n_motores)))))) # [W]
+                        energia_ida = (COAXIAL_80*Massa_Total*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*g/(2*rho*A*n_motores)))))))*((((x_rtl)**2+(y_rtl)**2)**0.5)/v_desloc)/3600
+                        energia_tanque = np.trapz(W, Massinha)/(vazao*60)
                         distancia_p_percorrer = (M_Pulv/vazao)*v_pulv*60
-                        distancia_talhao = Y #+ np.pi*faixa/2
-                        
                         if theta_rtl == 0:
-                            if distancia_p_percorrer > distancia_talhao - y_rtl:
-                                delta_x = (1 + int((distancia_p_percorrer - (distancia_talhao - y_rtl))/distancia_talhao))*faixa
-                                delta_y = ((distancia_p_percorrer - (distancia_talhao - y_rtl))/distancia_talhao - int((distancia_p_percorrer - (distancia_talhao - y_rtl))/distancia_talhao))*distancia_talhao
+                            if distancia_p_percorrer > Y - y_rtl:
+                                delta_x = (1 + int((distancia_p_percorrer - (Y - y_rtl))/Y))*faixa
+                                delta_y = ((distancia_p_percorrer - (Y - y_rtl))/Y - int((distancia_p_percorrer - (Y - y_rtl))/Y))*Y
                             else:
                                 delta_x = 0
                                 delta_y = distancia_p_percorrer
                         elif theta_rtl == 180:
                             if distancia_p_percorrer > y_rtl:
-                                delta_x = (1 + int((distancia_p_percorrer - (y_rtl))/distancia_talhao))*faixa
-                                delta_y = ((distancia_p_percorrer - (y_rtl))/distancia_talhao - int((distancia_p_percorrer - (y_rtl))/distancia_talhao))*distancia_talhao
+                                delta_x = (1 + int((distancia_p_percorrer - (y_rtl))/Y))*faixa
+                                delta_y = ((distancia_p_percorrer - (y_rtl))/Y - int((distancia_p_percorrer - (y_rtl))/Y))*Y
                             else:
                                 delta_x = 0
                                 delta_y = distancia_p_percorrer 
-                        
                         if delta_x/faixa % 2 == 0:
                             delta_y = np.cos(np.radians(theta_rtl))*delta_y
                         else:
                             delta_y = np.cos(np.radians(theta_rtl +180))*delta_y
-                        
-                        energia_subida = ((Massa_Total*g*zi)/3600) + (zi/v_subida)*((COAXIAL_80*Massa_Total*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*g/(2*rho*A_helice*n_motores))))))))/3600
-                        energia_descida =  - (((M_bat + M_vazio))*g*zi/3600) + (zi/v_subida)*(COAXIAL_80*(M_bat+M_vazio)*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt((M_bat+M_vazio)*g/(2*rho*A_helice*n_motores)))))))/3600
+                        energia_subida = ((Massa_Total*g*zi)/3600) + (zi/v_subida)*((COAXIAL_80*Massa_Total*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*g/(2*rho*A*n_motores))))))))/3600
+                        energia_descida =  - (((M_bat + M_vazio))*g*zi/3600) + (zi/v_subida)*(COAXIAL_80*(M_bat+M_vazio)*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt((M_bat+M_vazio)*g/(2*rho*A*n_motores)))))))/3600
                         energia_curva = ((Massa_Total*(v_pulv**2)/2)/3600)
-                        numero_curvas =  delta_x/faixa 
-                        energia_curvas = numero_curvas*energia_curva
-                        
-                        # energia_volta = (COAXIAL_80*(M_bat+M_vazio)*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt((M_bat+M_vazio)*g/(2*rho*A_helice*n_motores)))))))*((((x_rtl+delta_x)**2+(y_rtl+delta_y)**2)**0.5)/v_desloc)/3600
+                        energia_curvas = energia_curva*delta_x/faixa
                         energia_voo = (energia_tanque + energia_ida + energia_volta + energia_subida + energia_descida + energia_curvas)*fator_erro_otimização
-                    
-                    M_Pulv = M_Pulv-0.5
+                        
                     Massa_por_voo.append(M_Pulv)
-                    Delta_x.append(delta_x + x_rtl)
-                    Delta_y.append(delta_y + y_rtl)
                     M_pulv[i+1] = M_Pulv
 
-                #------ TIRAR SE DER RUIM-------------#
-            
-                elif OP[i] == "RTW":
-                    OP.append("RTL FIM")
-                #--------------------------------------#
+                elif OTIMIZAR_TANQUE == "NAO":
+                    if SETAR_TANQUE == "SIM":
+                        iii +=1
+                        M_pulv[i+1] = massa_joao[iii]
+                        Massa_por_voo.append(massa_joao[iii])
+                    else:
+                        M_pulv[i+1] = M_pulv_min
+                        Massa_por_voo.append(M_pulv_min)
                   
+                produtiv_por_voo.append(dist_pulv[i]*faixa)
+                X_rtl_por_voo.append(x_rtl)
+                Y_rtl_por_voo.append(y_rtl)
+                t_voo.append(t_de_voo[i])
+                Tempo_por_voo.append(t[len(t)-1])
+                iteracao_posicao = iteracao_posicao + 1
                 n_abs = n_abs + 1
                 t[i+1] = t[i+1] + t_abs_calda
-                M_Pulv = M_pulv_max
-
-                if voo == 1:
-                    produtiv_por_voo.append(dist_pulv[i]*faixa)
-                    X_rtl_por_voo.append(x_rtl)
-                    Y_rtl_por_voo.append(y_rtl)
-                    t_voo.append(t_de_voo[i])
-                    Tempo_por_voo.append(t[len(t)-1])
-                else:
-                    produtiv_por_voo.append(dist_pulv[i]*faixa)
-                    X_rtl_por_voo.append(x_rtl)
-                    Y_rtl_por_voo.append(y_rtl)
-                    t_voo.append(t_de_voo[i])
-                    Tempo_por_voo.append(t[len(t)-1])
-                    iteracao_posicao = iteracao_posicao + 1
+                M_Pulv = M_pulv_max              
+                indice_voo.append(i+1) 
+                E_bat[i+1] = E_bat_max
+                M_retorno.append(M_pulv[i])
+                Ebat_retorno.append(E_bat[i])
                 voo = voo + 1
-                
+                OP.append("RTW")
 
-                if theta[i+1] < 0:
-                    theta[i+1] = theta[i+1] + 180   
             elif (OP[i] != "RTL BAT"):
                 theta_rtl = theta[i+1]
-                alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
+                alpha_ida = math.atan2(x[i+1],y[i+1])*180/math.pi
                 if theta[i] == 0:
-                    alpha2 = math.atan2(x[i+1],( y[i+1] + (v[i]**2)/(2*acel) ))*180/math.pi
+                    alpha_volta = math.atan2(x[i+1],( y[i+1] + (v[i]**2)/(2*acel) ))*180/math.pi
                 elif theta[i] == 180:
-                    alpha2 = math.atan2(x[i+1],( y[i+1] - (v[i]**2)/(2*acel) ))*180/math.pi
+                    alpha_volta = math.atan2(x[i+1],( y[i+1] - (v[i]**2)/(2*acel) ))*180/math.pi
                 x_rtl = x[i+1]
                 y_rtl = y[i+1]
                 z_rtl = z_deslocando
                 OP.append("RTL BAT")
             else:
                 OP.append("RTL BAT")
+                
+# OPERAÇÃO SEGUINTE - DESLOCANDO
+#=============================================================================#
 
         elif(OP[i] =="DESLOCANDO"):
             if (x[i+1] == xi and y[i+1] ==  yi and z[i+1] == zi and theta[i+1] == thetai):
@@ -969,6 +914,10 @@ while M_pulv_max <= M_pulv_lim:
                     OP.append("DESLOCANDO")
             else:
                 OP.append("DESLOCANDO")
+                
+# OPERAÇÃO SEGUINTE - RTW
+#=============================================================================#
+
         elif(OP[i] == "RTW"):
             if (x[i+1] == x_rtl and y[i+1] ==  y_rtl and theta[i+1] == theta_rtl):
                 OP.append("PULVERIZANDO")
@@ -976,9 +925,16 @@ while M_pulv_max <= M_pulv_lim:
                 OP.append(OP[i])
         else:
             OP.append(OP[i])
+            
+# OPERAÇÃO SEGUINTE - PRÓXIMA ITERAÇÃO
+#=============================================================================#
+            
         i = i + 1
+        
+# FIM DA MISSÃO
+#=============================================================================#
     
-    if x[i] >= X + x0 and y[i] >= yi:
+    if x[i] >= X + x0 and (y[i] <= yi or y[i] >= Y + yi):
         STATUS.append("FIM")
         break
     else:
@@ -986,7 +942,8 @@ while M_pulv_max <= M_pulv_lim:
 
 # DESVIO PADRÃO DA DISTÂNCIA PERCORRIDA
 #=============================================================================#
-if SETAR_TANQUE == "SIM":           
+
+if SETAR_POSICAO == "SIM":           
     distancia = [0]  # Inicializa a lista de distâncias com o valor inicial 0
     Dist_voo = []
     for j in range(len(indice_voo)):  # Itera sobre os índices de 'indice_voo'
@@ -1022,7 +979,7 @@ if SETAR_TANQUE == "SIM":
     desvio_rel_0 = np.sqrt(np.mean(np.array(vetor_sem_ultimo)**2))
     print("Desvio Padrão da Distância:",f"{desvio_rel_0:.0f}")
 else:
-    print("F")
+    print("Finalizado")
 
 # ANDAMENTO DA OPERAÇÃO POR VOO
 #=============================================================================#
