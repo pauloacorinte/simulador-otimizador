@@ -180,6 +180,7 @@ while M_pulv_max <= M_pulv_lim:
     z = []; z_rtl = 0
     theta = []; theta_rtl = 0
     alpha = 0
+    alpha2 = 0
     x.append(0.0)
     y.append(0.0)
     z.append(0.0)
@@ -366,12 +367,12 @@ while M_pulv_max <= M_pulv_lim:
                 v.append(0)
                 w.append(0)
                 STATUS.append("SUBIDA")
-            elif theta_rtl == theta_dir and theta[i] > -alpha:
+            elif theta_rtl == theta_dir and theta[i] > -alpha2:
                 vz.append(0.0)
                 v.append(0.0)
                 w.append(-omega)
                 STATUS.append("YAW-")
-            elif theta_rtl == theta_dir + 180 and theta[i] < alpha + 180:
+            elif theta_rtl == theta_dir + 180 and theta[i] < alpha2 + 180:
                 vz.append(0.0)
                 v.append(0.0)
                 w.append(omega)
@@ -402,13 +403,13 @@ while M_pulv_max <= M_pulv_lim:
                 STATUS.append("DESCIDA")
 
             if STATUS[i] == "YAW+":
-                if (theta[i] + w[i] * dt > alpha + 180):
-                    theta.append(alpha + 180)
+                if (theta[i] + w[i] * dt > alpha2 + 180):
+                    theta.append(alpha2 + 180)
                 else:
                     theta.append(theta[i] + w[i] * dt)
             elif STATUS[i] == "YAW-":
-                if (theta[i] + w[i] * dt < -alpha):
-                    theta.append(-alpha)
+                if (theta[i] + w[i] * dt < -alpha2):
+                    theta.append(-alpha2)
                 else:
                     theta.append(theta[i] + w[i] * dt)
             else:
@@ -704,9 +705,13 @@ while M_pulv_max <= M_pulv_lim:
             else:
                 OP.append("RTL FIM")
                 
-        elif((x[i+1] >= X + x0 or voo == len(massa_joao)) and (STATUS[i] == "PITCH" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "PITCH desacelerando")):
+        elif((x[i+1] >= X + x0 ) and (STATUS[i] == "PITCH" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "PITCH desacelerando")):
             theta_rtl = theta[i+1]
             alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
+            if theta[i] == 0:
+                alpha2 = math.atan2(x[i+1],( y[i+1] + (v[i]**2)/(2*acel) ))*180/math.pi
+            elif theta[i] == 180:
+                alpha2 = math.atan2(x[i+1],( y[i+1] - (v[i]**2)/(2*acel) ))*180/math.pi
             x_rtl = x[i+1]
             y_rtl = y[i+1]
             z_rtl = z_deslocando
@@ -818,6 +823,10 @@ while M_pulv_max <= M_pulv_lim:
             elif (OP[i] == "PULVERIZANDO" or OP[i] == "DESLOCANDO"):
                 theta_rtl = theta[i+1]
                 alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
+                if theta[i] == 0:
+                    alpha2 = math.atan2(x[i+1],( y[i+1] + (v[i]**2)/(2*acel) ))*180/math.pi
+                elif theta[i] == 180:
+                    alpha2 = math.atan2(x[i+1],( y[i+1] - (v[i]**2)/(2*acel) ))*180/math.pi
                 x_rtl = x[i+1]
                 y_rtl = y[i+1]
                 z_rtl = z_deslocando
@@ -936,15 +945,20 @@ while M_pulv_max <= M_pulv_lim:
 
                 if theta[i+1] < 0:
                     theta[i+1] = theta[i+1] + 180   
-            elif (OP[i] != "RTL BAT"):
+            elif OP[i] != "RTL BAT":
                 theta_rtl = theta[i+1]
                 alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
+                if theta[i] == 0:
+                    alpha2 = math.atan2(x[i+1],( y[i+1] + (v[i]**2)/(2*acel) ))*180/math.pi
+                elif theta[i] == 180:
+                    alpha2 = math.atan2(x[i+1],( y[i+1] - (v[i]**2)/(2*acel) ))*180/math.pi
                 x_rtl = x[i+1]
                 y_rtl = y[i+1]
                 z_rtl = z_deslocando
                 OP.append("RTL BAT") 
-            else:
+            else: 
                 OP.append("RTL BAT")
+
 
         elif(OP[i] =="DESLOCANDO"):
             if (x[i+1] == xi and y[i+1] ==  yi and z[i+1] == zi and theta[i+1] == thetai):
@@ -1021,17 +1035,17 @@ Ebat_retorno = [(x / E_bat[0]) * 100 for x in Ebat_retorno];POR_VOO_Ebat_Retorno
 POR_VOO_T_VOO = np.array(t_voo) / 60
 POR_VOO_T_VOO2 = [POR_VOO_T_VOO[0]] + [POR_VOO_T_VOO[i] - POR_VOO_T_VOO[i-1] for i in range(1, len(POR_VOO_T_VOO))]
 
-andamento_por_voo = pd.DataFrame({
-    "Voo": np.arange(1, len(POR_VOO_T_VOO2) + 1),  # Cria uma sequência de voos
-    'Tempo Total [h]': POR_VOO_Tempo,
-    'X RTL [m]': POR_VOO_X_rtl,
-    'Y RTL [m]': POR_VOO_Y_rtl,
-    'D RTL [m]': POR_VOO_D_rtl,
-    'Bateria Retorno [%]': POR_VOO_Ebat_Retorno,
-    'Tanque Saída [L]': POR_VOO_Massa,
-    'Tanque Retorno [L]': POR_VOO_M_Retorno,
-    'Produtividade [ha]': POR_VOO_Produtividade,
-    'Tempo de Voo [min]': POR_VOO_T_VOO2})
+# andamento_por_voo = pd.DataFrame({
+#     "Voo": np.arange(1, len(POR_VOO_T_VOO2) + 1),  # Cria uma sequência de voos
+#     'Tempo Total [h]': POR_VOO_Tempo,
+#     'X RTL [m]': POR_VOO_X_rtl,
+#     'Y RTL [m]': POR_VOO_Y_rtl,
+#     'D RTL [m]': POR_VOO_D_rtl,
+#     'Bateria Retorno [%]': POR_VOO_Ebat_Retorno,
+#     'Tanque Saída [L]': POR_VOO_Massa,
+#     'Tanque Retorno [L]': POR_VOO_M_Retorno,
+#     'Produtividade [ha]': POR_VOO_Produtividade,
+#     'Tempo de Voo [min]': POR_VOO_T_VOO2})
 
 # ANDAMENTO DA OPERAÇÃO DISCRETIZADO
 #=============================================================================#
