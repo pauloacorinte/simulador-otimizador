@@ -716,7 +716,7 @@ while M_pulv_max <= M_pulv_lim:
             y_rtl = y[i+1]
             z_rtl = z_deslocando
             n_passada = 1 + n_passada
-            OP.append("RTL FIM")
+            OP.append("RTL FIM") 
             
         elif(M_pulv[i+1] == 0 and (STATUS[i] != "YAW+" and STATUS[i] != "YAW-" )):
             if SETAR_POSICAO == "SIM":
