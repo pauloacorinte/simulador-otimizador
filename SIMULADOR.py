@@ -705,7 +705,7 @@ while M_pulv_max <= M_pulv_lim:
             else:
                 OP.append("RTL FIM")
                 
-        elif((x[i+1] >= X + x0) and (STATUS[i] == "PITCH" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "PITCH desacelerando")) and SETAR_TANQUE == "NAO":
+        elif((voo <= len(massa_joao)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and SETAR_TANQUE == "SIM") or ((x[i+1] >= X + x0) and (abs(theta[i+1]) == 0 or abs(theta[i+1]) == 180) and SETAR_TANQUE == "NAO"):
             theta_rtl = theta[i+1]
             alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
             if theta[i] == 0:
@@ -716,20 +716,7 @@ while M_pulv_max <= M_pulv_lim:
             y_rtl = y[i+1]
             z_rtl = z_deslocando
             n_passada = 1 + n_passada
-            OP.append("RTL FIM")
-            
-        elif((voo == len(massa_joao)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and (STATUS[i] == "PITCH" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "PITCH desacelerando")) and SETAR_TANQUE == "SIM":
-            theta_rtl = theta[i+1]
-            alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
-            if theta[i] == 0:
-                alpha2 = math.atan2(x[i+1],( y[i+1] + (v[i]**2)/(2*acel) ))*180/math.pi
-            elif theta[i] == 180:
-                alpha2 = math.atan2(x[i+1],( y[i+1] - (v[i]**2)/(2*acel) ))*180/math.pi
-            x_rtl = x[i+1]
-            y_rtl = y[i+1]
-            z_rtl = z_deslocando
-            n_passada = 1 + n_passada
-            OP.append("RTL FIM")
+            OP.append("RTL FIM") 
             
         elif(M_pulv[i+1] == 0 and (STATUS[i] != "YAW+" and STATUS[i] != "YAW-" )):
             if SETAR_POSICAO == "SIM":
@@ -848,9 +835,7 @@ while M_pulv_max <= M_pulv_lim:
                 OP.append("RTL CALDA")
             
         elif(OP[i] == "RTL BAT" or (E_bat[i] <= bateria_limite*E_bat[0] and STATUS[i] != "YAW+" and STATUS[i] !="YAW-")):
-            if SETAR_POSICAO == "SIM":
-                if iteracao_posicao == len(X_rtw)-1:
-                    OP.append("RTL FIM")
+            
             
             if (x[i+1] == 0 and y[i+1] == 0 and z[i+1] == 0):
                 iii +=1
@@ -862,8 +847,9 @@ while M_pulv_max <= M_pulv_lim:
                 Ebat_retorno.append(E_bat[i])
                 
                 
-                if iii == len(massa_joao):
-                    break
+                if SETAR_POSICAO == "SIM":
+                    if iteracao_posicao == len(X_rtw)-1:
+                        OP.append("RTL FIM")
                 
                 elif OTIMIZAR_TANQUE == "NAO":
                     if SETAR_TANQUE == "SIM":
@@ -990,48 +976,51 @@ while M_pulv_max <= M_pulv_lim:
             OP.append(OP[i])
         i = i + 1
     
-    if flag == "on" and X >= np.sqrt(X0):
+    if x[i] >= X + x0 and y[i] >= yi:
+        STATUS.append("FIM")
         break
     else:
         break
 
 # DESVIO PADRÃO DA DISTÂNCIA PERCORRIDA
 #=============================================================================#
-            
-distancia = [0]  # Inicializa a lista de distâncias com o valor inicial 0
-Dist_voo = []
-for j in range(len(indice_voo)):  # Itera sobre os índices de 'indice_voo'
-    distancia = [0]
-    for n in range(indice_voo[j]):  # Itera de 0 até o valor armazenado em 'indice_voo[j]'
-        if n+1 == (indice_voo[j]):
-            Dist_voo.append(distancia[n])
-        if n+1 < len(x):  # Garante que 'n+1' esteja dentro do limite de 'x' e 'y'
-            dx = x[n+1] - x[n]  # Calcula a diferença em x
-            dy = y[n+1] - y[n]  # Calcula a diferença em y
-            distancia.append((dx**2 + dy**2)**0.5 + distancia[n])  # Adiciona a distância acumulada
-Dist_voo_corrigida = [Dist_voo[0]]
-for n in range(len(Dist_voo)-1):        
-    Dist_voo_corrigida.append(Dist_voo[n+1]-Dist_voo[n])
-ErroX = []
-ErroY = []
-ErroRTW = []
-for n in range(len(X_rtl_por_voo)):
-    ErroX.append(100*(abs(X_rtl_por_voo[n]-X_rtw[n])/X_rtl_por_voo[n]))
-    ErroY.append(100*(abs(Y_rtl_por_voo[n]-Y_rtw[n])/Y_rtl_por_voo[n]))
-    dist_simulado = ((X_rtl_por_voo[n])**2+(Y_rtl_por_voo[n])**2)**(1/2)
-    dist_ensaio =  ((X_rtw[n])**2+(Y_rtw[n])**2)**(1/2)
-    ErroRTW.append((abs(dist_simulado-dist_ensaio)))
-ErroDistVooRel = []
-ErroDistVooAbs = []
-for n in range(len(Dist_voo_corrigida)):
-    ErroDistVooRel.append(100*(abs(Dist_ensaio_voo[n]-Dist_voo_corrigida[n])/Dist_ensaio_voo[n]))
-    ErroDistVooAbs.append(((Dist_ensaio_voo[n]-Dist_voo_corrigida[n])))    
-vol = []
-for k in range(len(MTOW)):
-    vol.append(str(delta_pulv*k + M_pulv_min) + "[L]")
-vetor_sem_ultimo = ErroDistVooAbs[:-1]
-desvio_rel_0 = np.sqrt(np.mean(np.array(vetor_sem_ultimo)**2))
-print("Desvio Padrão da Distância:",f"{desvio_rel_0:.0f}")
+if SETAR_TANQUE == "SIM":           
+    distancia = [0]  # Inicializa a lista de distâncias com o valor inicial 0
+    Dist_voo = []
+    for j in range(len(indice_voo)):  # Itera sobre os índices de 'indice_voo'
+        distancia = [0]
+        for n in range(indice_voo[j]):  # Itera de 0 até o valor armazenado em 'indice_voo[j]'
+            if n+1 == (indice_voo[j]):
+                Dist_voo.append(distancia[n])
+            if n+1 < len(x):  # Garante que 'n+1' esteja dentro do limite de 'x' e 'y'
+                dx = x[n+1] - x[n]  # Calcula a diferença em x
+                dy = y[n+1] - y[n]  # Calcula a diferença em y
+                distancia.append((dx**2 + dy**2)**0.5 + distancia[n])  # Adiciona a distância acumulada
+    Dist_voo_corrigida = [Dist_voo[0]]
+    for n in range(len(Dist_voo)-1):        
+        Dist_voo_corrigida.append(Dist_voo[n+1]-Dist_voo[n])
+    ErroX = []
+    ErroY = []
+    ErroRTW = []
+    for n in range(len(X_rtl_por_voo)):
+        ErroX.append(100*(abs(X_rtl_por_voo[n]-X_rtw[n])/X_rtl_por_voo[n]))
+        ErroY.append(100*(abs(Y_rtl_por_voo[n]-Y_rtw[n])/Y_rtl_por_voo[n]))
+        dist_simulado = ((X_rtl_por_voo[n])**2+(Y_rtl_por_voo[n])**2)**(1/2)
+        dist_ensaio =  ((X_rtw[n])**2+(Y_rtw[n])**2)**(1/2)
+        ErroRTW.append((abs(dist_simulado-dist_ensaio)))
+    ErroDistVooRel = []
+    ErroDistVooAbs = []
+    for n in range(len(Dist_voo_corrigida)):
+        ErroDistVooRel.append(100*(abs(Dist_ensaio_voo[n]-Dist_voo_corrigida[n])/Dist_ensaio_voo[n]))
+        ErroDistVooAbs.append(((Dist_ensaio_voo[n]-Dist_voo_corrigida[n])))    
+    vol = []
+    for k in range(len(MTOW)):
+        vol.append(str(delta_pulv*k + M_pulv_min) + "[L]")
+    vetor_sem_ultimo = ErroDistVooAbs[:-1]
+    desvio_rel_0 = np.sqrt(np.mean(np.array(vetor_sem_ultimo)**2))
+    print("Desvio Padrão da Distância:",f"{desvio_rel_0:.0f}")
+else:
+    print("F")
 
 # ANDAMENTO DA OPERAÇÃO POR VOO
 #=============================================================================#
@@ -1047,17 +1036,17 @@ Ebat_retorno = [(x / E_bat[0]) * 100 for x in Ebat_retorno];POR_VOO_Ebat_Retorno
 POR_VOO_T_VOO = np.array(t_voo) / 60
 POR_VOO_T_VOO2 = [POR_VOO_T_VOO[0]] + [POR_VOO_T_VOO[i] - POR_VOO_T_VOO[i-1] for i in range(1, len(POR_VOO_T_VOO))]
 
-# andamento_por_voo = pd.DataFrame({
-#     "Voo": np.arange(1, len(POR_VOO_T_VOO2) + 1),  # Cria uma sequência de voos
-#     'Tempo Total [h]': POR_VOO_Tempo,
-#     'X RTL [m]': POR_VOO_X_rtl,
-#     'Y RTL [m]': POR_VOO_Y_rtl,
-#     'D RTL [m]': POR_VOO_D_rtl,
-#     'Bateria Retorno [%]': POR_VOO_Ebat_Retorno,
-#     'Tanque Saída [L]': POR_VOO_Massa,
-#     'Tanque Retorno [L]': POR_VOO_M_Retorno,
-#     'Produtividade [ha]': POR_VOO_Produtividade,
-#     'Tempo de Voo [min]': POR_VOO_T_VOO2})
+andamento_por_voo = pd.DataFrame({
+    "Voo": np.arange(1, len(POR_VOO_T_VOO2) + 1),  # Cria uma sequência de voos
+    'Tempo Total [h]': POR_VOO_Tempo,
+    'X RTL [m]': POR_VOO_X_rtl,
+    'Y RTL [m]': POR_VOO_Y_rtl,
+    'D RTL [m]': POR_VOO_D_rtl,
+    'Bateria Retorno [%]': POR_VOO_Ebat_Retorno,
+    'Tanque Saída [L]': POR_VOO_Massa,
+    'Tanque Retorno [L]': POR_VOO_M_Retorno,
+    'Produtividade [ha]': POR_VOO_Produtividade,
+    'Tempo de Voo [min]': POR_VOO_T_VOO2})
 
 # ANDAMENTO DA OPERAÇÃO DISCRETIZADO
 #=============================================================================#
