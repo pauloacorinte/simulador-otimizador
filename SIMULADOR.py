@@ -7,7 +7,6 @@ import plotly.graph_objects as go
 # INPUTS PRINCIPAIS
 #=============================================================================#  
 
-horas_maximas = 5 #[h]
 n_motores = 8 # Número motores
 Diametro = 54 # [in]
 eta_escmotor = 0.848 # Eficiência ESC e Motor
@@ -705,13 +704,15 @@ while M_pulv_max <= M_pulv_lim:
             else:
                 OP.append("RTL FIM")
                 
-        elif((voo <= len(massa_joao)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and SETAR_TANQUE == "SIM") or ((x[i+1] >= X + x0) and (abs(theta[i+1]) == 0 or abs(theta[i+1]) == 180) and SETAR_TANQUE == "NAO"):
-            theta_rtl = theta[i+1]
+        elif((voo <= len(massa_joao)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and SETAR_TANQUE == "SIM") or ((x[i+1] > math.ceil(X/faixa)*faixa + x0 - faixa/2) and SETAR_TANQUE == "NAO"):
+            theta_rtl = 0
             alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
             if theta[i] == 0:
                 alpha2 = math.atan2(x[i+1],( y[i+1] + (v[i]**2)/(2*acel) ))*180/math.pi
             elif theta[i] == 180:
                 alpha2 = math.atan2(x[i+1],( y[i+1] - (v[i]**2)/(2*acel) ))*180/math.pi
+            else:
+                alpha2 = alpha
             x_rtl = x[i+1]
             y_rtl = y[i+1]
             z_rtl = z_deslocando
@@ -1020,7 +1021,7 @@ if SETAR_TANQUE == "SIM":
     desvio_rel_0 = np.sqrt(np.mean(np.array(vetor_sem_ultimo)**2))
     print("Desvio Padrão da Distância:",f"{desvio_rel_0:.0f}")
 else:
-    print("F")
+    print("Finalizado")
 
 # ANDAMENTO DA OPERAÇÃO POR VOO
 #=============================================================================#
