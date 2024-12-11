@@ -708,6 +708,10 @@ while M_pulv_max <= M_pulv_lim:
         elif((x[i+1] >= X + x0) and (STATUS[i] == "PITCH" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "PITCH desacelerando")) and SETAR_TANQUE == "NAO":
             theta_rtl = theta[i+1]
             alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
+            if theta[i] == 0:
+                alpha2 = math.atan2(x[i+1],( y[i+1] + (v[i]**2)/(2*acel) ))*180/math.pi
+            elif theta[i] == 180:
+                alpha2 = math.atan2(x[i+1],( y[i+1] - (v[i]**2)/(2*acel) ))*180/math.pi
             x_rtl = x[i+1]
             y_rtl = y[i+1]
             z_rtl = z_deslocando
@@ -717,6 +721,10 @@ while M_pulv_max <= M_pulv_lim:
         elif((voo == len(massa_joao)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and (STATUS[i] == "PITCH" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "PITCH desacelerando")) and SETAR_TANQUE == "SIM":
             theta_rtl = theta[i+1]
             alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
+            if theta[i] == 0:
+                alpha2 = math.atan2(x[i+1],( y[i+1] + (v[i]**2)/(2*acel) ))*180/math.pi
+            elif theta[i] == 180:
+                alpha2 = math.atan2(x[i+1],( y[i+1] - (v[i]**2)/(2*acel) ))*180/math.pi
             x_rtl = x[i+1]
             y_rtl = y[i+1]
             z_rtl = z_deslocando
@@ -828,6 +836,10 @@ while M_pulv_max <= M_pulv_lim:
             elif (OP[i] == "PULVERIZANDO" or OP[i] == "DESLOCANDO"):
                 theta_rtl = theta[i+1]
                 alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
+                if theta[i] == 0:
+                    alpha2 = math.atan2(x[i+1],( y[i+1] + (v[i]**2)/(2*acel) ))*180/math.pi
+                elif theta[i] == 180:
+                    alpha2 = math.atan2(x[i+1],( y[i+1] - (v[i]**2)/(2*acel) ))*180/math.pi
                 x_rtl = x[i+1]
                 y_rtl = y[i+1]
                 z_rtl = z_deslocando
@@ -949,13 +961,14 @@ while M_pulv_max <= M_pulv_lim:
             elif (OP[i] != "RTL BAT"):
                 theta_rtl = theta[i+1]
                 alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
+                if theta[i] == 0:
+                    alpha2 = math.atan2(x[i+1],( y[i+1] + (v[i]**2)/(2*acel) ))*180/math.pi
+                elif theta[i] == 180:
+                    alpha2 = math.atan2(x[i+1],( y[i+1] - (v[i]**2)/(2*acel) ))*180/math.pi
                 x_rtl = x[i+1]
                 y_rtl = y[i+1]
                 z_rtl = z_deslocando
                 OP.append("RTL BAT")
-            elif (OP[i] == "RTL BAT") and STATUS[i] == "PITCH desacelerando" and (abs(theta[i+1]) - 0 < 0.001 or abs(theta[i+1]) - 180 < 0.0001):
-                OP.append("RTL BAT")
-                alpha2 = math.atan2(x[i],y[i])*180/math.pi
             else:
                 OP.append("RTL BAT")
 
