@@ -18,7 +18,7 @@ v_pulv = 7 # [m/s]
 v_deslocamento = 10 # [m/s] 
 faixa = 10 # [m] 
 celulas = 14 # [m/s] 
-cap_bat = 30000*0.804 # [m/Ah]*útil                                                                                                     
+cap_bat = 30000*0.81 # [m/Ah]*útil                                                                                                     
 M_vazio = 38 # [kg] 
 M_bat = 12.9 # [kg] 
 COAXIAL_80 = 1.397542375147 # Sobressalência de potência do coaxial
@@ -705,7 +705,20 @@ while M_pulv_max <= M_pulv_lim:
             else:
                 OP.append("RTL FIM")
                 
-        elif((x[i+1] >= X + x0 ) and (STATUS[i] == "PITCH" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "PITCH desacelerando")):
+        elif((x[i+1] >= X + x0) and (STATUS[i] == "PITCH" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "PITCH desacelerando")) and SETAR_TANQUE == "NAO":
+            theta_rtl = theta[i+1]
+            alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
+            if theta[i] == 0:
+                alpha2 = math.atan2(x[i+1],( y[i+1] + (v[i]**2)/(2*acel) ))*180/math.pi
+            elif theta[i] == 180:
+                alpha2 = math.atan2(x[i+1],( y[i+1] - (v[i]**2)/(2*acel) ))*180/math.pi
+            x_rtl = x[i+1]
+            y_rtl = y[i+1]
+            z_rtl = z_deslocando
+            n_passada = 1 + n_passada
+            OP.append("RTL FIM")
+            
+        elif((voo == len(massa_joao)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and (STATUS[i] == "PITCH" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "PITCH desacelerando")) and SETAR_TANQUE == "SIM":
             theta_rtl = theta[i+1]
             alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
             if theta[i] == 0:
@@ -945,7 +958,7 @@ while M_pulv_max <= M_pulv_lim:
 
                 if theta[i+1] < 0:
                     theta[i+1] = theta[i+1] + 180   
-            elif OP[i] != "RTL BAT":
+            elif (OP[i] != "RTL BAT"):
                 theta_rtl = theta[i+1]
                 alpha = math.atan2(x[i+1],y[i+1])*180/math.pi
                 if theta[i] == 0:
@@ -955,10 +968,9 @@ while M_pulv_max <= M_pulv_lim:
                 x_rtl = x[i+1]
                 y_rtl = y[i+1]
                 z_rtl = z_deslocando
-                OP.append("RTL BAT") 
-            else: 
                 OP.append("RTL BAT")
-
+            else:
+                OP.append("RTL BAT")
 
         elif(OP[i] =="DESLOCANDO"):
             if (x[i+1] == xi and y[i+1] ==  yi and z[i+1] == zi and theta[i+1] == thetai):
