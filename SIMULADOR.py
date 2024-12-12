@@ -30,7 +30,7 @@ acel = 1.4 # [m/s2]
 v_subida = 2 # [m/s] 
 omega = 26.0 # [rad/s]
 x0 = 42 # [m] Posição Inicial
-yi = 37.6+5 # [m] Posição Inicial
+yi = 42.6 # [m] Posição Inicial
 zi = 5.0 # [m] Altura pulverização referência
 Y = 300 # [m] Lado do Talhão
 area_total = 17.28 # [ha] 
@@ -54,60 +54,23 @@ X_rtw =     [x0 + faixa/2 + faixa*(perna_rtw[0]-1),
              x0 + faixa/2 + faixa*(perna_rtw[6]-1),
              x0 + faixa/2 + faixa*(perna_rtw[7]-1)] # [m] para x voos 
 Y_rtw =     [293.20, 127.22, 298.32, 240.32, 130.53, 317.62, 298.16, 209.30] # [m] para x voos 
-Dist_ensaio_voo = [2511, 2662, 2940, 2817, 2933, 3168, 3071, 2904] # [m] para x voos 
-massa_joao = [35.00,29.50,31.50,31.00,30.00,30.00,30.00,26.50] # [L] para x voos 
+set_tanque = [35.00,29.50,31.50,31.00,30.00,30.00,30.00,26.50] # [L] para x voos 
 Z_rtw = [14,18,19,25,27,30,37,41]
+Dist_ensaio_voo = [2511, 2662, 2940, 2817, 2933, 3168, 3071, 2904] # [m] para x voos 
 
 # CÁLCULOS INICIAIS
 #=============================================================================# 
 
-iteracao_posicao = 0
+iteracao_posicao = -1
 E_bat_max = (cap_bat/1000)*3.7*celulas
 vazao = Taxa/10000 * (v_pulv*60*faixa)
 A = np.pi*(0.5*Diametro*0.0254)**2
 cnst = 1/(eta_escmotor*eta_helice)
-tanque = 0
-Y0 = X0
 v_yaw = math.pi/180*omega*faixa/2
-M_pulv_min = 35
-M_pulv_lim = M_pulv_min
-M_pulv_max = M_pulv_min 
-delta_pulv = 1
-faixa_min = faixa; faixa_max = faixa
-faixas = np.arange(faixa_min,faixa_max+0.1,1)
-volume_tanque = np.arange(M_pulv_min,M_pulv_lim+0.1,delta_pulv)
-produtividade_matriz = np.zeros((len(faixas),len(volume_tanque)))
-capex_matriz = np.zeros((len(faixas),len(volume_tanque)))
+M_pulv_max = 35
 n_passada = 0
 area_pulv_local = [0]
-talhao_maximus = []
-resultados = []
-voo_vector = []
-dias = []
-tempo_manobra = []
-EOC_hr = []
-vol_conb_consumido = []
-tempo_missao = []
-talhao_maximus = []
-voo_vector = []
-produtividade = []
-M_pulvs = []
-MTOW = []
-capacidade_vector = []
-vol_comb = []
-dist_percorrida = []
-dist_pulverizando = []
-M_pulv_max2 = []
-vazao_bombas = []
-EOC_km = []
-area_por_voo = []
-faixa_vector = []
-tempo_por_voo = []
-tempo_util = []
-drone_e_bateria = []
-abastecimentos = []
 indice_voo = []
-capex = []
 T_hover = []; PWM_hover = []; 
 T_M1 = []; PWM_M1 = []; ef_M1 = []; Preq_M1 = []
 T_M2 = []; PWM_M2 = []; ef_M2 = []; Preq_M2 = []
@@ -124,7 +87,7 @@ vz = []
 w = []
 dist_percorr = [0]
 dist_pulv = [0]
-Preq_prop = []; P_gerador = [] 
+Preq_prop = [];
 t_voo = []
 X_rtl_por_voo = []
 Y_rtl_por_voo = []
@@ -133,15 +96,12 @@ voo_cor = [];voo_cor.append(1)
 M_retorno = []
 Ebat_retorno = []
 Tempo_por_voo = []
-Delta_x = [0]
-Delta_y = [0]
 cons_pulv = []
 M_tot = []
 Massa_por_voo.append(M_pulv_max)
-preco_drone_bateria = np.zeros(len(volume_tanque))
-preco_por_ha_real = np.zeros(len(volume_tanque))
 
-while M_pulv_max <= M_pulv_lim:
+
+while True:
     M_tot_in = M_pulv_max + M_vazio + M_bat
     P_sensores = 0;
     P_LED = 100
@@ -162,9 +122,9 @@ while M_pulv_max <= M_pulv_lim:
     M_pulv = []; 
     
     if SETAR_TANQUE == "SIM":
-        M_pulv.append(massa_joao[iii])
+        M_pulv.append(set_tanque[iii])
     else:
-        M_pulv.append(M_pulv_min)
+        M_pulv.append(M_pulv_max)
         
     t = []; t.append(t_prep + t_desloc_pre_op)
     t_pulv = []; t_pulv.append(0.0)
@@ -701,7 +661,7 @@ while M_pulv_max <= M_pulv_lim:
             else:
                 OP.append("RTL FIM")
                 
-        elif((voo <= len(massa_joao)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and SETAR_TANQUE == "SIM") or ((x[i+1] >= math.ceil(X/faixa)*faixa + x0 - faixa/2) and SETAR_TANQUE == "NAO"):
+        elif((voo >= len(set_tanque)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and SETAR_TANQUE == "SIM") or ((x[i+1] >= math.ceil(X/faixa)*faixa + x0 - faixa/2) and SETAR_TANQUE == "NAO"):
             theta_rtl = 0
             alpha_ida = math.atan2(x[i+1],y[i+1])*180/math.pi
             if theta[i] == 0:
@@ -724,7 +684,7 @@ while M_pulv_max <= M_pulv_lim:
                 if iteracao_posicao == len(X_rtw)-1:
                     OP.append("RTL FIM")
             
-            elif (x[i+1] == 0 and y[i+1] == 0 and z[i+1] == 0):
+            if (x[i+1] == 0 and y[i+1] == 0 and z[i+1] == 0):
                 if theta[i+1] < 0:
                     theta[i+1] = theta[i+1] + 180 
                     
@@ -773,11 +733,11 @@ while M_pulv_max <= M_pulv_lim:
                 elif OTIMIZAR_TANQUE == "NAO":
                     if SETAR_TANQUE == "SIM":
                         iii +=1
-                        M_Pulv[i+1] = massa_joao[iii]
-                        Massa_por_voo.append(massa_joao[iii])
+                        M_Pulv[i+1] = set_tanque[iii]
+                        Massa_por_voo.append(set_tanque[iii])
                     else:
-                        M_Pulv[i+1] = M_pulv_min
-                        Massa_por_voo.append(M_pulv_min)
+                        M_Pulv[i+1] = M_pulv_max
+                        Massa_por_voo.append(M_pulv_max)
 
                 produtiv_por_voo.append(dist_pulv[i]*faixa)
                 X_rtl_por_voo.append(x_rtl)
@@ -817,7 +777,7 @@ while M_pulv_max <= M_pulv_lim:
                 if iteracao_posicao == len(X_rtw)-1:
                     OP.append("RTL FIM")
                     
-            elif (x[i+1] == 0 and y[i+1] == 0 and z[i+1] == 0):
+            if (x[i+1] == 0 and y[i+1] == 0 and z[i+1] == 0):
                 if theta[i+1] < 0:
                     theta[i+1] = theta[i+1] + 180
                 
@@ -866,11 +826,11 @@ while M_pulv_max <= M_pulv_lim:
                 elif OTIMIZAR_TANQUE == "NAO":
                     if SETAR_TANQUE == "SIM":
                         iii +=1
-                        M_pulv[i+1] = massa_joao[iii]
-                        Massa_por_voo.append(massa_joao[iii])
+                        M_pulv[i+1] = set_tanque[iii]
+                        Massa_por_voo.append(set_tanque[iii])
                     else:
-                        M_pulv[i+1] = M_pulv_min
-                        Massa_por_voo.append(M_pulv_min)
+                        M_pulv[i+1] = M_pulv_max
+                        Massa_por_voo.append(M_pulv_max)
                   
                 produtiv_por_voo.append(dist_pulv[i]*faixa)
                 X_rtl_por_voo.append(x_rtl)
@@ -905,7 +865,7 @@ while M_pulv_max <= M_pulv_lim:
 # OPERAÇÃO SEGUINTE - DESLOCANDO
 #=============================================================================#
 
-        elif(OP[i] =="DESLOCANDO"):
+        elif(OP[i] == "DESLOCANDO"):
             if (x[i+1] == xi and y[i+1] ==  yi and z[i+1] == zi and theta[i+1] == thetai):
                 if thetai == theta_dir:
                     OP.append("PULVERIZANDO")
@@ -962,10 +922,10 @@ if SETAR_POSICAO == "SIM":
     ErroY = []
     ErroRTW = []
     for n in range(len(X_rtl_por_voo)):
-        ErroX.append(100*(abs(X_rtl_por_voo[n]-X_rtw[n])/X_rtl_por_voo[n]))
-        ErroY.append(100*(abs(Y_rtl_por_voo[n]-Y_rtw[n])/Y_rtl_por_voo[n]))
+        ErroX.append(100*(abs(X_rtl_por_voo[n-1]-X_rtw[n-1])/X_rtl_por_voo[n-1]))
+        ErroY.append(100*(abs(Y_rtl_por_voo[n-1]-Y_rtw[n-1])/Y_rtl_por_voo[n-1]))
         dist_simulado = ((X_rtl_por_voo[n])**2+(Y_rtl_por_voo[n])**2)**(1/2)
-        dist_ensaio =  ((X_rtw[n])**2+(Y_rtw[n])**2)**(1/2)
+        dist_ensaio =  ((X_rtw[n-1])**2+(Y_rtw[n-1])**2)**(1/2)
         ErroRTW.append((abs(dist_simulado-dist_ensaio)))
     ErroDistVooRel = []
     ErroDistVooAbs = []
@@ -973,8 +933,6 @@ if SETAR_POSICAO == "SIM":
         ErroDistVooRel.append(100*(abs(Dist_ensaio_voo[n]-Dist_voo_corrigida[n])/Dist_ensaio_voo[n]))
         ErroDistVooAbs.append(((Dist_ensaio_voo[n]-Dist_voo_corrigida[n])))    
     vol = []
-    for k in range(len(MTOW)):
-        vol.append(str(delta_pulv*k + M_pulv_min) + "[L]")
     vetor_sem_ultimo = ErroDistVooAbs[:-1]
     desvio_rel_0 = np.sqrt(np.mean(np.array(vetor_sem_ultimo)**2))
     print("Desvio Padrão da Distância:",f"{desvio_rel_0:.0f}")
