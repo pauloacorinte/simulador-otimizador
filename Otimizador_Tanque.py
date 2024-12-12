@@ -49,11 +49,11 @@ def Otimizador_Tanque(E_bat_max, bateria_limite, M_pulv_max, M_bat, M_vazio, COA
                 delta_y = distancia_p_percorrer
         elif theta_rtl == 180:
             if distancia_p_percorrer > y_rtl:
-                delta_x = 0
                 delta_x = (1 + int((distancia_p_percorrer - y_rtl) / Y)) * faixa
                 delta_y = ((distancia_p_percorrer - y_rtl) / Y - int((distancia_p_percorrer - y_rtl) / Y)) * Y
             else:
                 delta_y = distancia_p_percorrer
+                delta_x = 0
         
         # Ajuste de delta_y com base em delta_x/faixa
         if delta_x / faixa % 2 == 0:
@@ -80,6 +80,6 @@ def Otimizador_Tanque(E_bat_max, bateria_limite, M_pulv_max, M_bat, M_vazio, COA
     return M_Pulv
 
 # Exemplo de uso da função
-M_Pulv = Otimizador_Tanque(E_bat_max = 1258, bateria_limite = 0.29, M_pulv_max = 35, M_bat = 12.9, M_vazio = 38, COAXIAL_80 = 1.39, g = 9.8066, 
-                          eta_escmotor = 0.848, eta_helice = 0.7719, rho = 1.225, A = 1.47, n_motores = 8, vazao = 4.62, v_pulv = 7, faixa = 11, 
-                         x_rtl = 124, y_rtl = 300, theta_rtl = 0, Y = 300, v_desloc = 10, zi = 14, v_subida = 2, fator_erro_otimizacao = 1.1)
+# M_Pulv = Otimizador_Tanque(E_bat_max = 1258, bateria_limite = 0.29, M_pulv_max = 35, M_bat = 12.9, M_vazio = 38, COAXIAL_80 = 1.39, g = 9.8066, 
+#                           eta_escmotor = 0.848, eta_helice = 0.7719, rho = 1.225, A = 1.47, n_motores = 8, vazao = 4.62, v_pulv = 7, faixa = 11, 
+#                          x_rtl = 124, y_rtl = 300, theta_rtl = 0, Y = 300, v_desloc = 10, zi = 14, v_subida = 2, fator_erro_otimizacao = 1.1)
