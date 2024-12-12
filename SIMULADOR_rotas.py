@@ -2,7 +2,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import pandas as pd
-from Otimizador_Tanque import Otimizador_Tanque
+from opt_tanque import Otimizador_Tanque
 import plotly.graph_objects as go
 from RotasFun import rotacionar_ponto, ajustar_offset, distancia_origem, angulo_em_relaçao_ao_eixo_x, ordenar_pontos, calcular_reta
  # aobaa
@@ -45,8 +45,8 @@ OTIMIZAR_TANQUE = "NAO" #SIM ou NAO para otimizar tanque de cada voo
 SETAR_TANQUE = "NAO"  #SIM ou NAO para setar o tanque de cada voo
 SETAR_POSICAO = "NAO" #SIM ou NAO para setar a posição de cada voo
 
-pontos = [[100, 50], [50, 200], [200, 150], [250, 100]]
-thet = 0
+pontos = [[219, -260], [-5, -58], [-360,-506], [-136, -691]]
+thet = 240
 
 
 perna_rtw = [8,15,22,29,35,42,48,53] # Pernas para x voos 
@@ -479,7 +479,7 @@ while True:
                 if (theta[i] + w[i] * dt >= theta_dir + 180):
                     theta.append(theta_dir + 180)
                     x[i+1] = xi + n * faixa * math.cos(math.radians(theta_dir))
-                    y[i+1] = 300
+                    y[i+1] = y_max[n_passada2]
                     n = n + 1
                 else:
                     theta.append(theta[i] + w[i] * dt)
@@ -487,7 +487,7 @@ while True:
                 if (theta[i] + w[i] * dt <= theta_dir):
                     theta.append(theta_dir)
                     x[i+1] = xi + n * faixa * math.cos(math.radians(theta_dir))
-                    y[i+1] = 100
+                    y[i+1] = y_min[n_passada2]
                     n = n + 1
                 else:
                     theta.append(theta[i] + w[i] * dt)
@@ -843,7 +843,7 @@ while True:
             else:
                 OP.append("RTL FIM")
                 
-        elif((voo >= len(set_tanque)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and SETAR_TANQUE == "SIM") or ((x[i+1] >= math.ceil(X/faixa)*faixa + x0 - faixa/2) and SETAR_TANQUE == "NAO"):
+        elif((voo >= len(set_tanque)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and SETAR_TANQUE == "SIM") or (((x[i+1] >= math.ceil(X/faixa)*faixa + x0 - faixa/2) or x[i+1] >= max(x1) - faixa/2) and SETAR_TANQUE == "NAO"):
             theta_rtl = 0
             alpha_ida = math.atan2(x[i+1],y[i+1])*180/math.pi
             if theta[i] == 0:
@@ -857,6 +857,7 @@ while True:
             z_rtl = z_deslocando
             n_passada2 = 1 + n_passada2
             OP.append("RTL FIM")
+            
             
 # OPERAÇÃO SEGUINTE - RTL CALDA
 #=============================================================================#
