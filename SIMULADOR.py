@@ -1,7 +1,7 @@
 import numpy as np
 import math
 import pandas as pd
-from Otimizador_Tanque import Otimizador_Tanque
+from opt_tanque import Otimizador_Tanque
 import plotly.graph_objects as go
  
 # INPUTS PRINCIPAIS
