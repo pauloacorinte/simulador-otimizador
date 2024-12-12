@@ -1,7 +1,7 @@
 import numpy as np
 import math
 import pandas as pd
-# from CUSTOS_ELETRICO import custos
+from Otimizador_Tanque import Otimizador_Tanque
 import plotly.graph_objects as go
  
 # INPUTS PRINCIPAIS
@@ -22,7 +22,7 @@ M_vazio = 38 # [kg]
 M_bat = 12.9 # [kg] 
 COAXIAL_80 = 1.397542375147 # Sobressalência de potência do coaxial
 Cnst_PWM_T = 0.3844 # Constante de transformação pwm para tração
-fator_erro_otimização = 1.1 # Fator para adequar a otimização
+fator_erro_otimizacao = 1.1 # Fator para adequar a otimização
 bateria_limite = 0.29 # [%] de bateria para RTL BAT
 z_deslocando = 14 # [m] 
 z_pulverizando = 5.001 # [m] 
@@ -40,7 +40,7 @@ g = 9.80665 # gravidade
 # INPUTS DO TALHÃO
 #=============================================================================# 
 
-OTIMIZAR_TANQUE = "NAO" #SIM ou NAO para otimizar tanque de cada voo
+OTIMIZAR_TANQUE = "SIM" #SIM ou NAO para otimizar tanque de cada voo
 SETAR_TANQUE = "NAO"  #SIM ou NAO para setar o tanque de cada voo
 SETAR_POSICAO = "NAO" #SIM ou NAO para setar a posição de cada voo
 
@@ -674,7 +674,7 @@ while True:
             y_rtl = y[i+1]
             z_rtl = z_deslocando
             n_passada = 1 + n_passada
-            OP.append("RTL FIM") 
+            OP.append("RTL FIM")
             
 # OPERAÇÃO SEGUINTE - RTL CALDA
 #=============================================================================#
@@ -689,44 +689,9 @@ while True:
                     theta[i+1] = theta[i+1] + 180 
                     
                 if OTIMIZAR_TANQUE == "SIM":
-                    energia_tanque = 0
-                    energia_ida = 0
-                    energia_voo = 0
-                    energia_volta = 0
-                    M_Pulv = 0
-                    
-                    while energia_voo <= E_bat_max*(1-bateria_limite) and M_pulv_max>=M_Pulv+0.5:
-                        M_Pulv = M_Pulv+0.5
-                        Massa_Total = M_bat + M_vazio + M_Pulv
-                        Massinha = np.linspace(M_bat+M_vazio,Massa_Total,1000)
-                        W = COAXIAL_80*Massinha*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massinha*g/(2*rho*A*n_motores)))))) # [W]
-                        energia_ida = (COAXIAL_80*Massa_Total*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*g/(2*rho*A*n_motores)))))))*((((x_rtl)**2+(y_rtl)**2)**0.5)/v_desloc)/3600
-                        energia_tanque = np.trapz(W, Massinha)/(vazao*60)
-                        distancia_p_percorrer = (M_Pulv/vazao)*v_pulv*60
-                        if theta_rtl == 0:
-                            if distancia_p_percorrer > Y - y_rtl:
-                                delta_x = (1 + int((distancia_p_percorrer - (Y - y_rtl))/Y))*faixa
-                                delta_y = ((distancia_p_percorrer - (Y - y_rtl))/Y - int((distancia_p_percorrer - (Y - y_rtl))/Y))*Y
-                            else:
-                                delta_x = 0
-                                delta_y = distancia_p_percorrer
-                        elif theta_rtl == 180:
-                            if distancia_p_percorrer > y_rtl:
-                                delta_x = (1 + int((distancia_p_percorrer - (y_rtl))/Y))*faixa
-                                delta_y = ((distancia_p_percorrer - (y_rtl))/Y - int((distancia_p_percorrer - (y_rtl))/Y))*Y
-                            else:
-                                delta_x = 0
-                                delta_y = distancia_p_percorrer 
-                        if delta_x/faixa % 2 == 0:
-                            delta_y = np.cos(np.radians(theta_rtl))*delta_y
-                        else:
-                            delta_y = np.cos(np.radians(theta_rtl +180))*delta_y
-                        energia_subida = ((Massa_Total*g*zi)/3600) + (zi/v_subida)*((COAXIAL_80*Massa_Total*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*g/(2*rho*A*n_motores))))))))/3600
-                        energia_descida =  - (((M_bat + M_vazio))*g*zi/3600) + (zi/v_subida)*(COAXIAL_80*(M_bat+M_vazio)*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt((M_bat+M_vazio)*g/(2*rho*A*n_motores)))))))/3600
-                        energia_curva = ((Massa_Total*(v_pulv**2)/2)/3600)
-                        energia_curvas = energia_curva*delta_x/faixa
-                        energia_voo = (energia_tanque + energia_ida + energia_volta + energia_subida + energia_descida + energia_curvas)*fator_erro_otimização
-                        
+                    M_Pulv = Otimizador_Tanque(E_bat_max, bateria_limite, M_pulv_max, M_bat, M_vazio, COAXIAL_80, g, 
+                                              eta_escmotor, eta_helice, rho, A, n_motores, vazao, v_pulv, faixa, 
+                                              x_rtl, y_rtl, theta_rtl, Y, v_desloc, zi, v_subida, fator_erro_otimizacao)
                     Massa_por_voo.append(M_Pulv)
                     M_pulv[i+1] = M_Pulv
 
@@ -782,44 +747,9 @@ while True:
                     theta[i+1] = theta[i+1] + 180
                 
                 if OTIMIZAR_TANQUE == "SIM":
-                    energia_tanque = 0
-                    energia_ida = 0
-                    energia_voo = 0
-                    energia_volta = 0
-                    M_Pulv = 0
-                    
-                    while energia_voo <= E_bat_max*(1-bateria_limite) and M_pulv_max>=M_Pulv+0.5:
-                        M_Pulv = M_Pulv+0.5
-                        Massa_Total = M_bat + M_vazio + M_Pulv
-                        Massinha = np.linspace(M_bat+M_vazio,Massa_Total,1000)
-                        W = COAXIAL_80*Massinha*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massinha*g/(2*rho*A*n_motores)))))) # [W]
-                        energia_ida = (COAXIAL_80*Massa_Total*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*g/(2*rho*A*n_motores)))))))*((((x_rtl)**2+(y_rtl)**2)**0.5)/v_desloc)/3600
-                        energia_tanque = np.trapz(W, Massinha)/(vazao*60)
-                        distancia_p_percorrer = (M_Pulv/vazao)*v_pulv*60
-                        if theta_rtl == 0:
-                            if distancia_p_percorrer > Y - y_rtl:
-                                delta_x = (1 + int((distancia_p_percorrer - (Y - y_rtl))/Y))*faixa
-                                delta_y = ((distancia_p_percorrer - (Y - y_rtl))/Y - int((distancia_p_percorrer - (Y - y_rtl))/Y))*Y
-                            else:
-                                delta_x = 0
-                                delta_y = distancia_p_percorrer
-                        elif theta_rtl == 180:
-                            if distancia_p_percorrer > y_rtl:
-                                delta_x = (1 + int((distancia_p_percorrer - (y_rtl))/Y))*faixa
-                                delta_y = ((distancia_p_percorrer - (y_rtl))/Y - int((distancia_p_percorrer - (y_rtl))/Y))*Y
-                            else:
-                                delta_x = 0
-                                delta_y = distancia_p_percorrer 
-                        if delta_x/faixa % 2 == 0:
-                            delta_y = np.cos(np.radians(theta_rtl))*delta_y
-                        else:
-                            delta_y = np.cos(np.radians(theta_rtl +180))*delta_y
-                        energia_subida = ((Massa_Total*g*zi)/3600) + (zi/v_subida)*((COAXIAL_80*Massa_Total*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt(Massa_Total*g/(2*rho*A*n_motores))))))))/3600
-                        energia_descida =  - (((M_bat + M_vazio))*g*zi/3600) + (zi/v_subida)*(COAXIAL_80*(M_bat+M_vazio)*1000/((1000/g/(((1/(eta_escmotor*eta_helice)))*(np.sqrt((M_bat+M_vazio)*g/(2*rho*A*n_motores)))))))/3600
-                        energia_curva = ((Massa_Total*(v_pulv**2)/2)/3600)
-                        energia_curvas = energia_curva*delta_x/faixa
-                        energia_voo = (energia_tanque + energia_ida + energia_volta + energia_subida + energia_descida + energia_curvas)*fator_erro_otimização
-                        
+                    M_Pulv = Otimizador_Tanque(E_bat_max, bateria_limite, M_pulv_max, M_bat, M_vazio, COAXIAL_80, g, 
+                                              eta_escmotor, eta_helice, rho, A, n_motores, vazao, v_pulv, faixa, 
+                                              x_rtl, y_rtl, theta_rtl, Y, v_desloc, zi, v_subida, fator_erro_otimizacao)
                     Massa_por_voo.append(M_Pulv)
                     M_pulv[i+1] = M_Pulv
 
