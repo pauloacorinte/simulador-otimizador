@@ -21,7 +21,7 @@ v_pulv = 7 # [m/s]
 v_deslocamento = 10 # [m/s] 
 faixa = 11 # [m] 
 celulas = 14 # [m/s] 
-cap_bat = 30000*0.81 # [m/Ah]*útil                                                                                                     
+cap_bat = 30000*0.8 # [m/Ah]*útil                                                                                                     
 M_vazio = 38 # [kg] 
 M_bat = 12.9 # [kg] 
 COAXIAL_80 = 1.397542375147 # Sobressalência de potência do coaxial
@@ -44,7 +44,7 @@ g = 9.80665 # gravidade
 #=============================================================================# 
 
 OTIMIZAR_TANQUE = "NAO" #SIM ou NAO para otimizar tanque de cada voo
-SETAR_TANQUE = "NAO"  #SIM ou NAO para setar o tanque de cada voo
+SETAR_TANQUE = "SIM"  #SIM ou NAO para setar o tanque de cada voo
 SETAR_POSICAO = "NAO" #SIM ou NAO para setar a posição de cada voo
 SETAR_Z_DESLOCAMENTO = "NAO" #SIM ou NAO para setar o Z de deslocamento em voo
 
@@ -290,10 +290,11 @@ while True:
                 w.append(0.0)
                 STATUS.append("DESCIDA")
             elif ((theta[i] == theta_dir and y[i] < (Y - (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] < v_pulv) or (theta[i] == theta_dir + 180 and y[i] > yi + (v[i-1]**2 - v_yaw**2)/(2*acel)  and v[i-1] < v_pulv)):
-                vz.append(0.0)
-                v.append(v[i-1]+dt*acel)
-                w.append(0.0)
-                STATUS.append("PITCH acelerando")
+                
+                    vz.append(0.0)
+                    v.append(v[i-1]+dt*acel)
+                    w.append(0.0)
+                    STATUS.append("PITCH acelerando")
             elif ((theta[i] == theta_dir and y[i] < (Y - (v_pulv**2 - v_yaw**2)/(2*acel)) and v[i-1] >= v_pulv) or (theta[i] == theta_dir + 180 and y[i] > yi + (v_pulv**2 - v_yaw**2)/(2*acel) and v[i-1] >= v_pulv)):
                 vz.append(0.0)
                 v.append(v_pulv)
@@ -877,7 +878,7 @@ while True:
 # DESVIO PADRÃO DA DISTÂNCIA PERCORRIDA
 #=============================================================================#
 
-if SETAR_POSICAO == "SIM":           
+if SETAR_POSICAO == "SIM" or SETAR_TANQUE == "SIM":           
     distancia = [0]  # Inicializa a lista de distâncias com o valor inicial 0
     Dist_voo = []
     for j in range(len(indice_voo)):  # Itera sobre os índices de 'indice_voo'
