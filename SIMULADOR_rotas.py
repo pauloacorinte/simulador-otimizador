@@ -42,7 +42,7 @@ g = 9.80665 # gravidade
 #=============================================================================# 
 
 OTIMIZAR_TANQUE = "NAO" #SIM ou NAO para otimizar tanque de cada voo
-SETAR_TANQUE = "NAO"  #SIM ou NAO para setar o tanque de cada voo
+SETAR_TANQUE = ""  #SIM ou NAO para setar o tanque de cada voo
 SETAR_POSICAO = "NAO" #SIM ou NAO para setar a posição de cada voo
 
 # pontos = [[50, 50], [20, 500], [1000, 1000], [1500, 0]]
@@ -848,7 +848,7 @@ while True:
             else:
                 OP.append("RTL FIM")
                 
-        elif((voo >= len(set_tanque)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and SETAR_TANQUE == "SIM") or (((x[i+1] >= math.ceil(X/faixa)*faixa + x0 - faixa/2) or x[i+1] >= max(x1) - faixa/2) and SETAR_TANQUE == "NAO") or (n_passada2 == n_passada and STATUS[i] != "YAW-" and y[i+1] >= y_max[-1]):
+        elif((voo >= len(set_tanque)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and SETAR_TANQUE == "SIM") or (((x[i+1] >= math.ceil(X/faixa)*faixa + x0 - faixa/2) or x[i+1] >= max(x1) - faixa/2) and SETAR_TANQUE == "NAO") or (n_passada2 == n_passada and STATUS[i] != "YAW-" and y[i+1] >= y_max[-1]) or (n_passada2 == n_passada and STATUS[i] != "YAW+" and y[i+1] >= y_min[-1]):
             theta_rtl = 0
             alpha_ida = math.atan2(x[i+1],y[i+1])*180/math.pi
             if theta[i] == 0:
