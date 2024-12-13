@@ -6,7 +6,8 @@ from opt_tanque import Otimizador_Tanque
 import plotly.graph_objects as go
 from Rotas import rotacionar_ponto, ajustar_offset, distancia_origem, angulo_em_relaçao_ao_eixo_x, ordenar_pontos, calcular_reta
 from Rotas import rotas
- # aobaa
+from scipy.interpolate import griddata
+
 # INPUTS PRINCIPAIS
 #=============================================================================#  
 
@@ -43,14 +44,21 @@ g = 9.80665 # gravidade
 #=============================================================================# 
 
 OTIMIZAR_TANQUE = "NAO" #SIM ou NAO para otimizar tanque de cada voo
-SETAR_TANQUE = "SIM"  #SIM ou NAO para setar o tanque de cada voo
+SETAR_TANQUE = "NAO"  #SIM ou NAO para setar o tanque de cada voo
 SETAR_POSICAO = "NAO" #SIM ou NAO para setar a posição de cada voo
 SETAR_Z_DESLOCAMENTO = "NAO" #SIM ou NAO para setar o Z de deslocamento em voo
 
 # pontos = [[50, 50], [20, 100], [200, 80], [150, 0]]
 # pontos = [[50, 50], [100, 200], [250, 150], [300, 0]]
-pontos = [[46.5-faixa/2, 43], [46.5-faixa/2, 334], [606+faixa/2, 71], [606+faixa/2, 357]]
+# pontos = [[46.5-faixa/2, 43], [46.5-faixa/2, 334], [606+faixa/2, 71], [606+faixa/2, 357]]
 # pontos = [[100, 50], [50, 200], [200, 150], [250, 100]]
+
+pontos = [
+    [46.5-faixa/2, 43, 10],   # Ponto 1 (x1, y1, z1)
+    [46.5-faixa/2, 334, 12],  # Ponto 2 (x2, y2, z2)
+    [606+faixa/2, 71, 15],  # Ponto 3 (x3, y3, z3)
+    [606+faixa/2, 357, 18]  # Ponto 4 (x4, y4, z4)
+    ]
 thet = 0
 
 
@@ -71,6 +79,15 @@ Dist_ensaio_voo = [2511, 2662, 2940, 2817, 2933, 3168, 3071, 2904] # [m] para x 
 # CÁLCULOS INICIAIS
 #=============================================================================# 
 
+pontos_xy = [p[:2] for p in pontos]  # Extraindo X e Y
+pontos_z = [p[2] for p in pontos]    # Extraindo Z
+
+def obter_z(x, y):
+    # Interpolação para calcular o valor de Z em qualquer ponto (x, y)
+    z = griddata(pontos_xy, pontos_z, (x, y), method='linear')
+    return z
+
+pontos2 = pontos_xy
 iteracao_posicao = -1
 E_bat_max = (cap_bat/1000)*3.7*celulas
 vazao = Taxa/10000 * (v_pulv*60*faixa)
@@ -111,7 +128,8 @@ Massa_por_voo.append(M_pulv_max)
 n_passada2 = 0
 
 
-x1, y_min, y_max, max_x, n_passada, ponto1, ponto2, ponto3, ponto4, y1, x2, y2 = rotas(pontos, thet, faixa)
+x1, y_min, y_max, max_x, n_passada, ponto1, ponto2, ponto3, ponto4, y1, x2, y2 = rotas(pontos2, thet, faixa)
+            
 while True:
     M_tot_in = M_pulv_max + M_vazio + M_bat
     P_sensores = 0;
