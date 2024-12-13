@@ -5,7 +5,7 @@ import pandas as pd
 from opt_tanque import Otimizador_Tanque
 import plotly.graph_objects as go
 from RotasFun import rotacionar_ponto, ajustar_offset, distancia_origem, angulo_em_relaçao_ao_eixo_x, ordenar_pontos, calcular_reta
- # aobaa
+
 # INPUTS PRINCIPAIS
 #=============================================================================#  
 
