@@ -4,9 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from opt_tanque import Otimizador_Tanque
 import plotly.graph_objects as go
-from Rotas import rotacionar_ponto, ajustar_offset, distancia_origem, angulo_em_relaçao_ao_eixo_x, ordenar_pontos, calcular_reta
-from Rotas import rotas
-
+from RotasFun import rotacionar_ponto, ajustar_offset, distancia_origem, angulo_em_relaçao_ao_eixo_x, ordenar_pontos, calcular_reta
  # aobaa
 # INPUTS PRINCIPAIS
 #=============================================================================#  
@@ -19,7 +17,7 @@ rho = 1.225 # [g/cm3]
 Taxa = 10.0 # [L/ha]      
 v_pulv = 7 # [m/s] 
 v_deslocamento = 10 # [m/s] 
-faixa = 10 # [m] 
+faixa = 11 # [m] 
 celulas = 14 # [m/s] 
 cap_bat = 30000*0.81 # [m/Ah]*útil                                                                                                     
 M_vazio = 38 # [kg] 
@@ -44,12 +42,13 @@ g = 9.80665 # gravidade
 #=============================================================================# 
 
 OTIMIZAR_TANQUE = "NAO" #SIM ou NAO para otimizar tanque de cada voo
-SETAR_TANQUE = ""  #SIM ou NAO para setar o tanque de cada voo
+SETAR_TANQUE = "SIM"  #SIM ou NAO para setar o tanque de cada voo
 SETAR_POSICAO = "NAO" #SIM ou NAO para setar a posição de cada voo
+SETAR_Z_DESLOCAMENTO = "NAO" #SIM ou NAO para setar o Z de deslocamento em voo
 
 # pontos = [[50, 50], [20, 100], [200, 80], [150, 0]]
 # pontos = [[50, 50], [100, 200], [250, 150], [300, 0]]
-pontos = [[50, 50], [80, 200], [200, 150], [150, 70]]
+pontos = [[46.5-faixa/2, 43], [46.5-faixa/2, 334], [606+faixa/2, 71], [606+faixa/2, 357]]
 # pontos = [[100, 50], [50, 200], [200, 150], [250, 100]]
 thet = 0
 
@@ -111,8 +110,148 @@ Massa_por_voo.append(M_pulv_max)
 n_passada2 = 0
 
 ## CALCULO DOS PONTOS DO TALHAO
-
-x1, y_min, y_max, max_x, n_passada, ponto1, ponto2, ponto3, ponto4, y1, x2, y2 = rotas(pontos, thet, faixa)
+ponto1, ponto2, ponto3, ponto4 = ordenar_pontos(pontos)
+ponto1_rotacionado = rotacionar_ponto(ponto1, thet)
+ponto2_rotacionado = rotacionar_ponto(ponto2, thet)
+ponto3_rotacionado = rotacionar_ponto(ponto3, thet)
+ponto4_rotacionado = rotacionar_ponto(ponto4, thet)
+pontos_rotacionados = [ponto1_rotacionado, ponto2_rotacionado, ponto3_rotacionado, ponto4_rotacionado]
+pontos_ajustados, offset_x, offset_y = ajustar_offset(pontos_rotacionados)
+# ponto1, ponto2, ponto3, ponto4 = pontos_ajustados 
+ponto1, ponto2, ponto3, ponto4 = ordenar_pontos(pontos_ajustados)  
+coef12 = calcular_reta(ponto1, ponto2)
+coef23 = calcular_reta(ponto2, ponto3)
+coef34 = calcular_reta(ponto3, ponto4)
+coef14 = calcular_reta(ponto1, ponto4)
+max_x = max(p[0] for p in [ponto1, ponto2, ponto3, ponto4])
+thet = 0
+faixa1 = faixa
+x1 = []
+x11 = []
+y1 = []
+y_min = []
+x2 = []
+x22 = []
+y2 = []
+y_max = []
+n_passada = 1
+i = 0
+while True:
+    # if ponto1[0] != ponto2[0]:
+    if n_passada == 1:
+        faixa = faixa1/2
+    else :
+        faixa = faixa1
+    if coef12[0] >= 0:
+        
+        if n_passada == 1:
+            x1.append(n_passada * faixa + ponto1[0])
+            x11.append(n_passada * faixa + ponto1[0] + faixa)
+        else:
+            x1.append(n_passada * faixa + ponto1[0] - faixa/2)
+            x11.append(n_passada * faixa + ponto1[0])
+            
+        if x1[i] <= ponto4[0]:
+            y1.append(coef14[0] * x1[i] + coef14[1])
+            
+            if coef14[0] >= 0:
+                y_min.append(coef14[0] * (x11[i-1]) + coef14[1])
+            else:
+                if i % 2 == 0:
+                    y_min.append(coef14[0] * x1[i] + coef14[1])
+                else:
+                    y_min.append(coef14[0] * (x11[i]+faixa) + coef14[1])
+                
+        else:
+            y1.append(coef34[0] * x1[i] + coef34[1])
+            if coef34[0] >= 0:
+                y_min.append(coef34[0] * x1[i] + coef34[1])
+            else:
+                y_min.append(coef34[0] * (x11[i]+faixa1) + coef34[1])
+    
+    
+        x2.append(x1[i])
+        x22.append(x11[i])
+        
+        if x2[i] <= ponto2[0]:
+            y2.append(coef12[0] * x2[i] + coef12[1])
+            if i % 2 == 0:
+                y_max.append(coef12[0] * (x22[i]+faixa1/2) + coef12[1])
+            else:
+                y_max.append(coef12[0] * x2[i] + coef12[1])
+            if y_max[i]> ponto2[1]:
+                y_max[i] = ponto2[1]
+           
+                
+        elif x2[i] > ponto3[0]:
+            y2.append(coef34[0] * x2[i] + coef34[1])
+            if coef34[0] >= 0:
+                y_max.append(coef34[0] * x22[i] + coef34[1])
+            elif coef34[0] < 0:
+                y_max.append(coef34[0] * (x2[i]) + coef34[1])
+                
+        else:
+            y2.append(coef23[0] * x2[i] + coef23[1])
+            if coef23[0] >= 0:
+                y_max.append(coef23[0] * x22[i] + coef23[1])
+            elif coef23[0] < 0:
+                y_max.append(y2[i])
+            
+    elif coef12[0] < 0:
+        
+        if n_passada == 1:
+            x1.append(n_passada * faixa + ponto2[0])
+            x11.append(n_passada * faixa + ponto2[0] + faixa1/2)
+        else:
+            x1.append(n_passada * faixa + ponto2[0] - faixa/2)
+            x11.append(n_passada * faixa + ponto2[0])
+            
+        if x1[i] <= ponto1[0]:
+            
+            y1.append(coef12[0] * x1[i] + coef12[1])
+            
+            if i % 2 == 0:
+                y_min.append(coef12[0] * x1[i] + coef12[1])
+            else:
+                y_min.append(coef12[0] * (x11[i]+faixa1/2) + coef12[1])
+                
+        elif x1[i] >= ponto4[0]:
+            y1.append(coef34[0] * x1[i] + coef34[1])
+            if coef34[0] >= 0:
+                y_min.append(coef34[0] * (x1[i]) + coef34[1])
+            else:
+                if i % 2 == 0:
+                    y_min.append(coef34[0] * x1[i] + coef34[1])
+                else:
+                    y_min.append(coef34[0] * (x11[i]-faixa1/2) + coef34[1])
+                
+        else:
+            y1.append(coef14[0] * x1[i] + coef14[1])
+            if coef14[0] >= 0:
+                y_min.append(coef14[0] * x11[i] + coef14[1])
+            else:
+                if i % 2 == 0:
+                    y_min.append(coef14[0] * x1[i] + coef14[1])
+                    
+                else:
+                    y_min.append(coef14[0] * (x11[i]+faixa1/2) + coef14[1])
+                
+        x2.append(x1[i])
+        x22.append(x1[i])
+        if ponto3[0] == max_x:
+            y2.append(coef23[0] * x2[i] + coef23[1])
+            y_max.append(coef23[0] * x22[i] + coef23[1])
+        else:
+            if x2[i] <= ponto3[0]:
+                y2.append(coef23[0] * x2[i] + coef23[1])
+                y_max.append(coef23[0] * x22[i] + coef23[1])
+            else:
+                y2.append(coef34[0] * x2[i] + coef34[1])
+                y_max.append(coef34[0] * x22[i] + coef34[1])
+    if x1[i] >= (max_x-faixa/2):
+        break
+    n_passada += 1
+    i += 1
 
 while True:
     M_tot_in = M_pulv_max + M_vazio + M_bat
@@ -182,7 +321,7 @@ while True:
 # SETANDO ALTURA
 #=============================================================================# 
         
-        if SETAR_POSICAO == "SIM":
+        if SETAR_Z_DESLOCAMENTO == "SIM":
             for pos in range(len(Z_rtw)):
                 if voo == (pos+1):
                     z_deslocando = Z_rtw[pos]
@@ -848,10 +987,6 @@ while True:
 #=============================================================================#
             
         i = i + 1
-        # if n_passada2 == (n_passada):
-        #     STATUS.append("FIM")
-        #     break
-    
         
 # FIM DA MISSÃO
 #=============================================================================#
@@ -937,7 +1072,7 @@ plt.plot(x2, y2, 's-', label="Linha 2 (x2, y2)", color='red')
 plt.plot(x,y)
 # Conexão entre os pontos
 for i in range(len(x1)):
-    plt.plot([x1[i], x1[i]], [y_min[i], y_max[i]], color='purple', linestyle='--', linewidth=0.8)
+    plt.plot([x1[i], x2[i]], [y_min[i], y_max[i]], color='purple', linestyle='--', linewidth=0.8)
 
 # Pontos fixos
 plt.scatter([ponto1[0], ponto2[0], ponto3[0], ponto4[0]], 
