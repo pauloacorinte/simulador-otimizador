@@ -45,9 +45,9 @@ OTIMIZAR_TANQUE = "NAO" #SIM ou NAO para otimizar tanque de cada voo
 SETAR_TANQUE = ""  #SIM ou NAO para setar o tanque de cada voo
 SETAR_POSICAO = "NAO" #SIM ou NAO para setar a posição de cada voo
 
-# pontos = [[50, 50], [20, 500], [1000, 1000], [1500, 0]]
-pontos = [[50, 50], [100, 200], [250, 150], [300, 0]]
-# pontos = [[50, 50], [80, 200], [200, 150], [150, 70]]
+# pontos = [[50, 50], [20, 100], [200, 80], [150, 0]]
+# pontos = [[50, 50], [100, 200], [250, 150], [300, 0]]
+pontos = [[50, 50], [80, 200], [200, 150], [150, 70]]
 # pontos = [[100, 50], [50, 200], [200, 150], [250, 100]]
 thet = 0
 
@@ -451,19 +451,19 @@ while True:
                 v.append(v_pulv)
                 w.append(0.0)
                 STATUS.append("PITCH")
-            elif (theta[i] >= theta_dir and y[i] >= (Y - (v_pulv**2 - v_yaw**2)/(2*acel)) and v[i-1] > v_yaw):
+            elif (theta[i] >= theta_dir and y[i] >= (Y - (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] > v_yaw):
                 vz.append(0.0)
                 w.append(0.0)
                 v.append(v[i-1]-dt*acel)
                 STATUS.append("PITCH desacelerando")
-            elif (theta[i] >= theta_dir and y[i] >= (Y - (v_pulv**2 - v_yaw**2)/(2*acel)) and v[i-1] <= v_yaw):
+            elif (theta[i] >= theta_dir and y[i] >= (Y - (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] <= v_yaw):
                 vz.append(0.0)
                 w.append(omega)
                 v.append(v_yaw)
                 STATUS.append("YAW+")
                 if (STATUS[i-1] == "PITCH desacelerando" or STATUS[i-1] == "PITCH acelerando" or STATUS[i-1] == "DESCIDA"):
                     n_passada2 = n_passada2 + 1
-            elif (theta[i] <= theta_dir + 180 and y[i] <= (yi + (v_pulv**2 - v_yaw**2)/(2*acel)) and v[i-1] > v_yaw):
+            elif (theta[i] <= theta_dir + 180 and y[i] <= (yi + (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] > v_yaw):
                 vz.append(0.0)
                 w.append(0.0)
                 v.append(v[i-1]-dt*acel)
@@ -483,16 +483,24 @@ while True:
             if STATUS[i] == "YAW+":
                 if (theta[i] + w[i] * dt >= theta_dir + 180):
                     theta.append(theta_dir + 180)
-                    x[i+1] = xi + n * faixa * math.cos(math.radians(theta_dir))
-                    y[i+1] = y_max[n_passada2]
+                    if x[i] >= max(x1):
+                        x[i+1] = max(x1)
+                        y[i+1] = Y
+                    else:
+                        x[i+1] = xi + n * faixa * math.cos(math.radians(theta_dir))
+                        y[i+1] = Y
                     n = n + 1
                 else:
                     theta.append(theta[i] + w[i] * dt)
             elif STATUS[i] == "YAW-":
                 if (theta[i] + w[i] * dt <= theta_dir):
                     theta.append(theta_dir)
-                    x[i+1] = xi + n * faixa * math.cos(math.radians(theta_dir))
-                    y[i+1] = y_min[n_passada2]
+                    if x[i] >= max(x1):
+                        x[i+1] = max(x1)
+                        y[i+1] = yi
+                    else:
+                        x[i+1] = xi + n * faixa * math.cos(math.radians(theta_dir))
+                        y[i+1] = yi
                     n = n + 1
                 else:
                     theta.append(theta[i] + w[i] * dt)
@@ -848,7 +856,7 @@ while True:
             else:
                 OP.append("RTL FIM")
                 
-        elif((voo >= len(set_tanque)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and SETAR_TANQUE == "SIM") or (((x[i+1] >= math.ceil(X/faixa)*faixa + x0 - faixa/2) or x[i+1] >= max(x1) - faixa/2) and SETAR_TANQUE == "NAO") or (n_passada2 == n_passada and STATUS[i] != "YAW-" and y[i+1] >= y_max[-1]) or (n_passada2 == n_passada and STATUS[i] != "YAW+" and y[i+1] >= y_min[-1]):
+        elif((voo >= len(set_tanque)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and SETAR_TANQUE == "SIM") or (((x[i+1] >= math.ceil(X/faixa)*faixa + x0 - faixa/2) or x[i+1] >= max(x1) - faixa/2) and SETAR_TANQUE == "NAO") or (n_passada2 == n_passada and STATUS[i] != "YAW-" and y[i+1] >= y_max[-1]) or (n_passada2 == n_passada and STATUS[i] != "YAW+" and y[i+1] <= y_min[-1]):
             theta_rtl = 0
             alpha_ida = math.atan2(x[i+1],y[i+1])*180/math.pi
             if theta[i] == 0:
