@@ -45,8 +45,11 @@ OTIMIZAR_TANQUE = "NAO" #SIM ou NAO para otimizar tanque de cada voo
 SETAR_TANQUE = "NAO"  #SIM ou NAO para setar o tanque de cada voo
 SETAR_POSICAO = "NAO" #SIM ou NAO para setar a posição de cada voo
 
-pontos = [[219, -260], [-5, -58], [-360,-506], [-136, -691]]
-thet = 240
+# pontos = [[50, 50], [20, 500], [1000, 1000], [1500, 0]]
+pontos = [[50, 50], [100, 200], [250, 150], [300, 0]]
+# pontos = [[50, 50], [80, 200], [200, 150], [150, 70]]
+# pontos = [[100, 50], [50, 200], [200, 150], [250, 100]]
+thet = 0
 
 
 perna_rtw = [8,15,22,29,35,42,48,53] # Pernas para x voos 
@@ -113,7 +116,8 @@ ponto3_rotacionado = rotacionar_ponto(ponto3, thet)
 ponto4_rotacionado = rotacionar_ponto(ponto4, thet)
 pontos_rotacionados = [ponto1_rotacionado, ponto2_rotacionado, ponto3_rotacionado, ponto4_rotacionado]
 pontos_ajustados, offset_x, offset_y = ajustar_offset(pontos_rotacionados)
-ponto1, ponto2, ponto3, ponto4 = pontos_ajustados   
+# ponto1, ponto2, ponto3, ponto4 = pontos_ajustados 
+ponto1, ponto2, ponto3, ponto4 = ordenar_pontos(pontos_ajustados)  
 coef12 = calcular_reta(ponto1, ponto2)
 coef23 = calcular_reta(ponto2, ponto3)
 coef34 = calcular_reta(ponto3, ponto4)
@@ -247,36 +251,36 @@ while True:
         break
     n_passada += 1
     i += 1
-plt.figure(figsize=(10, 8))
+# plt.figure(figsize=(10, 8))
 
-# Retas geradas
-plt.plot(x1, y1, 'o-', label="Linha 1 (x1, y1)", color='blue')
-plt.plot(x2, y2, 's-', label="Linha 2 (x2, y2)", color='red')
+# # Retas geradas
+# plt.plot(x1, y1, 'o-', label="Linha 1 (x1, y1)", color='blue')
+# plt.plot(x2, y2, 's-', label="Linha 2 (x2, y2)", color='red')
 
-# Conexão entre os pontos
-for i in range(len(x1)):
-    plt.plot([x1[i], x2[i]], [y_min[i], y_max[i]], color='purple', linestyle='--', linewidth=0.8)
+# # Conexão entre os pontos
+# for i in range(len(x1)):
+#     plt.plot([x1[i], x2[i]], [y_min[i], y_max[i]], color='purple', linestyle='--', linewidth=0.8)
 
-# Pontos fixos
-plt.scatter([ponto1[0], ponto2[0], ponto3[0], ponto4[0]], 
-            [ponto1[1], ponto2[1], ponto3[1], ponto4[1]], 
-            color='green', label='Pontos Fixos', zorder=5)
+# # Pontos fixos
+# plt.scatter([ponto1[0], ponto2[0], ponto3[0], ponto4[0]], 
+#             [ponto1[1], ponto2[1], ponto3[1], ponto4[1]], 
+#             color='green', label='Pontos Fixos', zorder=5)
 
-# Nomes dos pontos
-plt.text(ponto1[0], ponto1[1], 'P1', fontsize=12, ha='right', color='green')
-plt.text(ponto2[0], ponto2[1], 'P2', fontsize=12, ha='right', color='green')
-plt.text(ponto3[0], ponto3[1], 'P3', fontsize=12, ha='right', color='green')
-plt.text(ponto4[0], ponto4[1], 'P4', fontsize=12, ha='right', color='green')
+# # Nomes dos pontos
+# plt.text(ponto1[0], ponto1[1], 'P1', fontsize=12, ha='right', color='green')
+# plt.text(ponto2[0], ponto2[1], 'P2', fontsize=12, ha='right', color='green')
+# plt.text(ponto3[0], ponto3[1], 'P3', fontsize=12, ha='right', color='green')
+# plt.text(ponto4[0], ponto4[1], 'P4', fontsize=12, ha='right', color='green')
 
-# Estilização
-plt.title("Pontos e Retas Geradas")
-plt.xlabel("x")
-plt.ylabel("y")
-plt.axhline(0, color='black', linewidth=0.5, linestyle='--')  # Eixo Y
-plt.axvline(0, color='black', linewidth=0.5, linestyle='--')  # Eixo X
-plt.legend()
-plt.grid(True)
-plt.show()
+# # Estilização
+# plt.title("Pontos e Retas Geradas")
+# plt.xlabel("x")
+# plt.ylabel("y")
+# plt.axhline(0, color='black', linewidth=0.5, linestyle='--')  # Eixo Y
+# plt.axvline(0, color='black', linewidth=0.5, linestyle='--')  # Eixo X
+# plt.legend()
+# plt.grid(True)
+# plt.show()
 
 while True:
     M_tot_in = M_pulv_max + M_vazio + M_bat
@@ -337,9 +341,12 @@ while True:
     OP.append("DESLOCANDO")
     while OP[i] != "FIM":
         T_hover.append(M_tot[i]/n_motores) 
-        Y = y_max[n_passada2]
-        
-        yi = y_min[n_passada2]
+        if n_passada2 >= n_passada:
+            Y = y_max[-1]
+            yi = y_min[-1]
+        else:
+            Y = y_max[n_passada2]
+            yi = y_min[n_passada2]
 # SETANDO ALTURA
 #=============================================================================# 
         
@@ -434,7 +441,7 @@ while True:
                 v.append(0.0)
                 w.append(0.0)
                 STATUS.append("DESCIDA")
-            elif ((theta[i] == theta_dir and y[i] < (Y - (v_pulv**2 - v_yaw**2)/(2*acel)) and v[i-1] < v_pulv) or (theta[i] == theta_dir + 180 and y[i] > yi + (v_pulv**2 - v_yaw**2)/(2*acel)  and v[i-1] < v_pulv)):
+            elif ((theta[i] == theta_dir and y[i] < (Y - (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] < v_pulv) or (theta[i] == theta_dir + 180 and y[i] > yi + (v[i-1]**2 - v_yaw**2)/(2*acel)  and v[i-1] < v_pulv)):
                 vz.append(0.0)
                 v.append(v[i-1]+dt*acel)
                 w.append(0.0)
@@ -454,9 +461,8 @@ while True:
                 w.append(omega)
                 v.append(v_yaw)
                 STATUS.append("YAW+")
-                if STATUS[i-1] == "PITCH desacelerando":
+                if (STATUS[i-1] == "PITCH desacelerando" or STATUS[i-1] == "PITCH acelerando" or STATUS[i-1] == "DESCIDA"):
                     n_passada2 = n_passada2 + 1
-                    print("AA")
             elif (theta[i] <= theta_dir + 180 and y[i] <= (yi + (v_pulv**2 - v_yaw**2)/(2*acel)) and v[i-1] > v_yaw):
                 vz.append(0.0)
                 w.append(0.0)
@@ -467,9 +473,8 @@ while True:
                 w.append(-omega)
                 v.append(v_yaw)
                 STATUS.append("YAW-")
-                if STATUS[i-1] == "PITCH desacelerando":
+                if (STATUS[i-1] == "PITCH desacelerando" or STATUS[i-1] == "PITCH acelerando" or STATUS[i-1] == "DESCIDA"):
                     n_passada2 = n_passada2 + 1
-                    print("AAA")
                 
             x.append(x[i] + v[i] * math.sin(math.radians(theta[i])) * dt)
             y.append(y[i] + v[i] * math.cos(math.radians(theta[i])) * dt)
@@ -843,7 +848,7 @@ while True:
             else:
                 OP.append("RTL FIM")
                 
-        elif((voo >= len(set_tanque)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and SETAR_TANQUE == "SIM") or (((x[i+1] >= math.ceil(X/faixa)*faixa + x0 - faixa/2) or x[i+1] >= max(x1) - faixa/2) and SETAR_TANQUE == "NAO"):
+        elif((voo >= len(set_tanque)) and (OP[i] == "RTL BAT" or OP[i] == "RTL CALDA") and SETAR_TANQUE == "SIM") or (((x[i+1] >= math.ceil(X/faixa)*faixa + x0 - faixa/2) or x[i+1] >= max(x1) - faixa/2) and SETAR_TANQUE == "NAO") or (n_passada2 == n_passada and STATUS[i] != "YAW-" and y[i+1] >= y_max[-1]):
             theta_rtl = 0
             alpha_ida = math.atan2(x[i+1],y[i+1])*180/math.pi
             if theta[i] == 0:
@@ -1003,9 +1008,9 @@ while True:
 #=============================================================================#
             
         i = i + 1
-        if n_passada2 == (n_passada):
-            STATUS.append("FIM")
-            break
+        # if n_passada2 == (n_passada):
+        #     STATUS.append("FIM")
+        #     break
     
         
 # FIM DA MISSÃO
@@ -1059,28 +1064,28 @@ else:
 # ANDAMENTO DA OPERAÇÃO POR VOO
 #=============================================================================#
 
-# POR_VOO_Tempo = np.array(Tempo_por_voo) / 3600
-# POR_VOO_X_rtl = np.array(X_rtl_por_voo)
-# POR_VOO_Y_rtl = np.array(Y_rtl_por_voo)
-# POR_VOO_D_rtl = np.sqrt(POR_VOO_X_rtl**2 + POR_VOO_Y_rtl**2)  # Evita usar potência e simplifica
-# POR_VOO_Produtividade = np.array(produtiv_por_voo) / 10000
-# POR_VOO_Massa = np.array(Massa_por_voo)
-# POR_VOO_M_Retorno = np.array(M_retorno)
-# Ebat_retorno = [(x / E_bat[0]) * 100 for x in Ebat_retorno];POR_VOO_Ebat_Retorno = np.array(Ebat_retorno);
-# POR_VOO_T_VOO = np.array(t_voo) / 60
-# POR_VOO_T_VOO2 = [POR_VOO_T_VOO[0]] + [POR_VOO_T_VOO[i] - POR_VOO_T_VOO[i-1] for i in range(1, len(POR_VOO_T_VOO))]
+POR_VOO_Tempo = np.array(Tempo_por_voo) / 3600
+POR_VOO_X_rtl = np.array(X_rtl_por_voo)
+POR_VOO_Y_rtl = np.array(Y_rtl_por_voo)
+POR_VOO_D_rtl = np.sqrt(POR_VOO_X_rtl**2 + POR_VOO_Y_rtl**2)  # Evita usar potência e simplifica
+POR_VOO_Produtividade = np.array(produtiv_por_voo) / 10000
+POR_VOO_Massa = np.array(Massa_por_voo)
+POR_VOO_M_Retorno = np.array(M_retorno)
+Ebat_retorno = [(x / E_bat[0]) * 100 for x in Ebat_retorno];POR_VOO_Ebat_Retorno = np.array(Ebat_retorno);
+POR_VOO_T_VOO = np.array(t_voo) / 60
+POR_VOO_T_VOO2 = [POR_VOO_T_VOO[0]] + [POR_VOO_T_VOO[i] - POR_VOO_T_VOO[i-1] for i in range(1, len(POR_VOO_T_VOO))]
 
-# andamento_por_voo = pd.DataFrame({
-#     "Voo": np.arange(1, len(POR_VOO_T_VOO2) + 1),  # Cria uma sequência de voos
-#     'Tempo Total [h]': POR_VOO_Tempo,
-#     'X RTL [m]': POR_VOO_X_rtl,
-#     'Y RTL [m]': POR_VOO_Y_rtl,
-#     'D RTL [m]': POR_VOO_D_rtl,
-#     'Bateria Retorno [%]': POR_VOO_Ebat_Retorno,
-#     'Tanque Saída [L]': POR_VOO_Massa,
-#     'Tanque Retorno [L]': POR_VOO_M_Retorno,
-#     'Produtividade [ha]': POR_VOO_Produtividade,
-#     'Tempo de Voo [min]': POR_VOO_T_VOO2})
+andamento_por_voo = pd.DataFrame({
+    "Voo": np.arange(1, len(POR_VOO_T_VOO2) + 1),  # Cria uma sequência de voos
+    'Tempo Total [h]': POR_VOO_Tempo,
+    'X RTL [m]': POR_VOO_X_rtl,
+    'Y RTL [m]': POR_VOO_Y_rtl,
+    'D RTL [m]': POR_VOO_D_rtl,
+    'Bateria Retorno [%]': POR_VOO_Ebat_Retorno,
+    'Tanque Saída [L]': POR_VOO_Massa,
+    'Tanque Retorno [L]': POR_VOO_M_Retorno,
+    'Produtividade [ha]': POR_VOO_Produtividade,
+    'Tempo de Voo [min]': POR_VOO_T_VOO2})
 
 # ANDAMENTO DA OPERAÇÃO DISCRETIZADO
 #=============================================================================#
