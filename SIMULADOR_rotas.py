@@ -17,7 +17,7 @@ rho = 1.225 # [g/cm3]
 Taxa = 10.0 # [L/ha]      
 v_pulv = 7 # [m/s] 
 v_deslocamento = 10 # [m/s] 
-faixa = 10 # [m] 
+faixa = 11 # [m] 
 celulas = 14 # [m/s] 
 cap_bat = 30000*0.81 # [m/Ah]*útil                                                                                                     
 M_vazio = 38 # [kg] 
@@ -42,12 +42,13 @@ g = 9.80665 # gravidade
 #=============================================================================# 
 
 OTIMIZAR_TANQUE = "NAO" #SIM ou NAO para otimizar tanque de cada voo
-SETAR_TANQUE = ""  #SIM ou NAO para setar o tanque de cada voo
+SETAR_TANQUE = "SIM"  #SIM ou NAO para setar o tanque de cada voo
 SETAR_POSICAO = "NAO" #SIM ou NAO para setar a posição de cada voo
+SETAR_Z_DESLOCAMENTO = "NAO" #SIM ou NAO para setar o Z de deslocamento em voo
 
 # pontos = [[50, 50], [20, 100], [200, 80], [150, 0]]
 # pontos = [[50, 50], [100, 200], [250, 150], [300, 0]]
-pontos = [[50, 50], [80, 200], [200, 150], [150, 70]]
+pontos = [[46.5-faixa/2, 43], [46.5-faixa/2, 334], [606+faixa/2, 71], [606+faixa/2, 357]]
 # pontos = [[100, 50], [50, 200], [200, 150], [250, 100]]
 thet = 0
 
@@ -251,36 +252,6 @@ while True:
         break
     n_passada += 1
     i += 1
-# plt.figure(figsize=(10, 8))
-
-# # Retas geradas
-# plt.plot(x1, y1, 'o-', label="Linha 1 (x1, y1)", color='blue')
-# plt.plot(x2, y2, 's-', label="Linha 2 (x2, y2)", color='red')
-
-# # Conexão entre os pontos
-# for i in range(len(x1)):
-#     plt.plot([x1[i], x2[i]], [y_min[i], y_max[i]], color='purple', linestyle='--', linewidth=0.8)
-
-# # Pontos fixos
-# plt.scatter([ponto1[0], ponto2[0], ponto3[0], ponto4[0]], 
-#             [ponto1[1], ponto2[1], ponto3[1], ponto4[1]], 
-#             color='green', label='Pontos Fixos', zorder=5)
-
-# # Nomes dos pontos
-# plt.text(ponto1[0], ponto1[1], 'P1', fontsize=12, ha='right', color='green')
-# plt.text(ponto2[0], ponto2[1], 'P2', fontsize=12, ha='right', color='green')
-# plt.text(ponto3[0], ponto3[1], 'P3', fontsize=12, ha='right', color='green')
-# plt.text(ponto4[0], ponto4[1], 'P4', fontsize=12, ha='right', color='green')
-
-# # Estilização
-# plt.title("Pontos e Retas Geradas")
-# plt.xlabel("x")
-# plt.ylabel("y")
-# plt.axhline(0, color='black', linewidth=0.5, linestyle='--')  # Eixo Y
-# plt.axvline(0, color='black', linewidth=0.5, linestyle='--')  # Eixo X
-# plt.legend()
-# plt.grid(True)
-# plt.show()
 
 while True:
     M_tot_in = M_pulv_max + M_vazio + M_bat
@@ -350,7 +321,7 @@ while True:
 # SETANDO ALTURA
 #=============================================================================# 
         
-        if SETAR_POSICAO == "SIM":
+        if SETAR_Z_DESLOCAMENTO == "SIM":
             for pos in range(len(Z_rtw)):
                 if voo == (pos+1):
                     z_deslocando = Z_rtw[pos]
@@ -1016,10 +987,6 @@ while True:
 #=============================================================================#
             
         i = i + 1
-        # if n_passada2 == (n_passada):
-        #     STATUS.append("FIM")
-        #     break
-    
         
 # FIM DA MISSÃO
 #=============================================================================#
