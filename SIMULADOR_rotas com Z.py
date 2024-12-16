@@ -21,7 +21,7 @@ v_pulv = 7 # [m/s]
 v_deslocamento = 10 # [m/s] 
 faixa = 11 # [m] 
 celulas = 14 # [m/s] 
-cap_bat = 30000*0.8 # [m/Ah]*útil                                                                                                     
+cap_bat = 30000*0.809 # [m/Ah]*útil                                                                                                     
 M_vazio = 38 # [kg] 
 M_bat = 12.9 # [kg] 
 COAXIAL_80 = 1.397542375147 # Sobressalência de potência do coaxial
@@ -46,7 +46,7 @@ g = 9.80665 # gravidade
 OTIMIZAR_TANQUE = "NAO" #SIM ou NAO para otimizar tanque de cada voo
 SETAR_TANQUE = "SIM"  #SIM ou NAO para setar o tanque de cada voo
 SETAR_POSICAO = "NAO" #SIM ou NAO para setar a posição de cada voo
-SETAR_Z_DESLOCAMENTO = "NAO" #SIM ou NAO para setar o Z de deslocamento em voo
+SETAR_Z_DESLOCAMENTO = "SIM" #SIM ou NAO para setar o Z de deslocamento em voo
 
 # pontos = [[50, 50], [20, 100], [200, 80], [150, 0]]
 # pontos = [[50, 50], [100, 200], [250, 150], [300, 0]]
@@ -163,6 +163,7 @@ while True:
     theta_dir = 0
     xi = x1[0]
     yi = y_min[0]
+    Z = zi
     x = []; x_rtl = 0
     y = []; y_rtl = 0
     z = []; z_rtl = 0
