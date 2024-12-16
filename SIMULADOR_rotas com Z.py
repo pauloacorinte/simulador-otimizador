@@ -11,7 +11,7 @@ from scipy.interpolate import griddata
 # INPUTS PRINCIPAIS
 #=============================================================================#  
 
-n_motores = 8 # Número motores
+n_motores = 8 # Número motor
 Diametro = 54 # [in]
 eta_escmotor = 0.848 # Eficiência ESC e Motor
 eta_helice = 0.7719 # Eficiência Hélice
