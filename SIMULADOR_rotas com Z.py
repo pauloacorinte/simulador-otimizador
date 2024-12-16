@@ -44,7 +44,7 @@ g = 9.80665 # gravidade
 #=============================================================================# 
 
 OTIMIZAR_TANQUE = "NAO" #SIM ou NAO para otimizar tanque de cada voo
-SETAR_TANQUE = "SIM"  #SIM ou NAO para setar o tanque de cada voo
+SETAR_TANQUE = "NAO"  #SIM ou NAO para setar o tanque de cada voo
 SETAR_POSICAO = "NAO" #SIM ou NAO para setar a posição de cada voo
 SETAR_Z_DESLOCAMENTO = "SIM" #SIM ou NAO para setar o Z de deslocamento em voo
 
@@ -54,13 +54,12 @@ SETAR_Z_DESLOCAMENTO = "SIM" #SIM ou NAO para setar o Z de deslocamento em voo
 # pontos = [[100, 50], [50, 200], [200, 150], [250, 100]]
 
 pontos = [
-    [46.5-faixa/2, 43, 10],   # Ponto 1 (x1, y1, z1)
-    [46.5-faixa/2, 334, 12],  # Ponto 2 (x2, y2, z2)
-    [606+faixa/2, 71, 15],  # Ponto 3 (x3, y3, z3)
-    [606+faixa/2, 357, 18]  # Ponto 4 (x4, y4, z4)
+    [46.5-faixa/2, 43, -10],   # Ponto 1 (x1, y1, z1)
+    [46.5-faixa/2, 334, -20],  # Ponto 2 (x2, y2, z2)
+    [606+faixa/2, 71, -30],  # Ponto 3 (x3, y3, z3)
+    [606+faixa/2, 357, -40]  # Ponto 4 (x4, y4, z4)
     ]
 thet = 0
-
 
 perna_rtw = [8,15,22,29,35,42,48,53] # Pernas para x voos 
 X_rtw =     [x0 + faixa/2 + faixa*(perna_rtw[0]-1),
@@ -126,7 +125,6 @@ cons_pulv = []
 M_tot = []
 Massa_por_voo.append(M_pulv_max)
 n_passada2 = 0
-
 
 x1, y_min, y_max, max_x, n_passada, ponto1, ponto2, ponto3, ponto4, y1, x2, y2 = rotas(pontos2, thet, faixa)
             
@@ -284,47 +282,63 @@ while True:
 #=============================================================================#     
         
         if OP[i] == "PULVERIZANDO":
-            
-            if z[i] >= z_pulverizando:
-                vz.append(-v_subida)
-                v.append(0.0)
-                w.append(0.0)
-                STATUS.append("DESCIDA")
-            elif ((theta[i] == theta_dir and y[i] < (Y - (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] < v_pulv) or (theta[i] == theta_dir + 180 and y[i] > yi + (v[i-1]**2 - v_yaw**2)/(2*acel)  and v[i-1] < v_pulv)):
+
+            if z[i] > obter_z(x[i],y[i]) + z_pulverizando and (y[i] == y_min[0] or y[i] == y_rtl):
+                if abs(z[i] - (obter_z(x[i],y[i]) + z_pulverizando)) < v_subida*dt and (x[i] == x1[0] or y[i] == y_min[0]):
+                    x[i] = x1[0]
+                    y[i] = y_min[0]
+                    z[i] = obter_z(x[i],y[i]) + z_pulverizando
+                    STATUS.append("DESCIDA PRE PITCH")
+                elif abs(z[i] - (obter_z(x[i],y[i]) + z_pulverizando)) < v_subida*dt and (x[i] == x_rtl or y[i] == y_rtl):
+                    x[i] = x_rtl
+                    y[i] = y_rtl
+                    z[i] = obter_z(x[i],y[i]) + z_pulverizando
+                    STATUS.append("DESCIDA PRE PITCH")
+                else:
+                    vz.append(-v_subida)
+                    v.append(0.0)
+                    w.append(0.0)
+                    STATUS.append("DESCIDA")
                 
-                    vz.append(0.0)
+            elif STATUS[i] != "DESCIDA" or STATUS[i] == "DESCIDA PRE PITCH":
+                
+                if z[i] > obter_z(x[i],y[i]) + z_pulverizando:
+                    vz.append(-v_subida)
+                elif z[i] < obter_z(x[i],y[i]) + z_pulverizando: 
+                    vz.append(v_subida)
+                elif z[i] == obter_z(x[i],y[i]) + z_pulverizando:
+                    vz.append(0)
+                elif np.isnan(obter_z(x[i], y[i])):
+                    vz.append(0)
+                    
+                if ((theta[i] == theta_dir and y[i] < (Y - (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] < v_pulv) or (theta[i] == theta_dir + 180 and y[i] > yi + (v[i-1]**2 - v_yaw**2)/(2*acel)  and v[i-1] < v_pulv)):
                     v.append(v[i-1]+dt*acel)
                     w.append(0.0)
                     STATUS.append("PITCH acelerando")
-            elif ((theta[i] == theta_dir and y[i] < (Y - (v_pulv**2 - v_yaw**2)/(2*acel)) and v[i-1] >= v_pulv) or (theta[i] == theta_dir + 180 and y[i] > yi + (v_pulv**2 - v_yaw**2)/(2*acel) and v[i-1] >= v_pulv)):
-                vz.append(0.0)
-                v.append(v_pulv)
-                w.append(0.0)
-                STATUS.append("PITCH")
-            elif (theta[i] >= theta_dir and y[i] >= (Y - (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] > v_yaw):
-                vz.append(0.0)
-                w.append(0.0)
-                v.append(v[i-1]-dt*acel)
-                STATUS.append("PITCH desacelerando")
-            elif (theta[i] >= theta_dir and y[i] >= (Y - (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] <= v_yaw):
-                vz.append(0.0)
-                w.append(omega)
-                v.append(v_yaw)
-                STATUS.append("YAW+")
-                if (STATUS[i-1] == "PITCH desacelerando" or STATUS[i-1] == "PITCH acelerando" or STATUS[i-1] == "DESCIDA"):
-                    n_passada2 = n_passada2 + 1
-            elif (theta[i] <= theta_dir + 180 and y[i] <= (yi + (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] > v_yaw):
-                vz.append(0.0)
-                w.append(0.0)
-                v.append(v[i-1]-dt*acel)
-                STATUS.append("PITCH desacelerando")
-            elif (theta[i] <= theta_dir + 180 and y[i] <= (yi + (v_pulv**2 - v_yaw**2)/(2*acel)) and v[i-1] <= v_yaw):
-                vz.append(0.0)
-                w.append(-omega)
-                v.append(v_yaw)
-                STATUS.append("YAW-")
-                if (STATUS[i-1] == "PITCH desacelerando" or STATUS[i-1] == "PITCH acelerando" or STATUS[i-1] == "DESCIDA"):
-                    n_passada2 = n_passada2 + 1
+                elif ((theta[i] == theta_dir and y[i] < (Y - (v_pulv**2 - v_yaw**2)/(2*acel)) and v[i-1] >= v_pulv) or (theta[i] == theta_dir + 180 and y[i] > yi + (v_pulv**2 - v_yaw**2)/(2*acel) and v[i-1] >= v_pulv)):
+                    v.append(v_pulv)
+                    w.append(0.0)
+                    STATUS.append("PITCH")
+                elif (theta[i] >= theta_dir and y[i] >= (Y - (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] > v_yaw):
+                    w.append(0.0)
+                    v.append(v[i-1]-dt*acel)
+                    STATUS.append("PITCH desacelerando")
+                elif (theta[i] >= theta_dir and y[i] >= (Y - (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] <= v_yaw):
+                    w.append(omega)
+                    v.append(v_yaw)
+                    STATUS.append("YAW+")
+                    if (STATUS[i] == "PITCH desacelerando" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "DESCIDA"):
+                        n_passada2 = n_passada2 + 1
+                elif (theta[i] <= theta_dir + 180 and y[i] <= (yi + (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] > v_yaw):
+                    w.append(0.0)
+                    v.append(v[i-1]-dt*acel)
+                    STATUS.append("PITCH desacelerando")
+                elif (theta[i] <= theta_dir + 180 and y[i] <= (yi + (v_pulv**2 - v_yaw**2)/(2*acel)) and v[i-1] <= v_yaw):
+                    w.append(-omega)
+                    v.append(v_yaw)
+                    STATUS.append("YAW-")
+                    if (STATUS[i] == "PITCH desacelerando" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "DESCIDA"):
+                        n_passada2 = n_passada2 + 1
                 
             x.append(x[i] + v[i] * math.sin(math.radians(theta[i])) * dt)
             y.append(y[i] + v[i] * math.cos(math.radians(theta[i])) * dt)
@@ -337,7 +351,7 @@ while True:
                         x[i+1] = max(x1)
                         y[i+1] = Y
                     else:
-                        x[i+1] = xi + n * faixa * math.cos(math.radians(theta_dir))
+                        x[i+1] = xi + n_passada2 * faixa * math.cos(math.radians(theta_dir))
                         y[i+1] = Y
                     n = n + 1
                 else:
@@ -349,7 +363,7 @@ while True:
                         x[i+1] = max(x1)
                         y[i+1] = yi
                     else:
-                        x[i+1] = xi + n * faixa * math.cos(math.radians(theta_dir))
+                        x[i+1] = xi + n_passada2 * faixa * math.cos(math.radians(theta_dir))
                         y[i+1] = yi
                     n = n + 1
                 else:
