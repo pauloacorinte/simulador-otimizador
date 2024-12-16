@@ -433,12 +433,12 @@ while True:
             else:
                 theta.append(theta[i])
                 
-            if (z[i] + vz[i] * dt < 0):
+            if (z[i] + vz[i] * dt < 0) and x[i] == 0:
                 z.append(0)
             else:
                 z.append(z[i] + vz[i] * dt)
                 
-            if STATUS[i] == "PITCH desacelerando" and abs(z[i] - z_pulverizando) <= 0.001:
+            if STATUS[i] == "PITCH desacelerando" and (theta[i] == 0 or theta[i] == 180):
                 if (x[i] - abs(v[i]*math.sin(math.radians(theta[i])) * dt) < 0):
                     x.append(0)
                 else:
