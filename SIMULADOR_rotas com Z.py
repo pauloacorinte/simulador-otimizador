@@ -328,6 +328,7 @@ while True:
                     STATUS.append("YAW+")
                     if (STATUS[i] == "PITCH desacelerando" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "DESCIDA"):
                         n_passada2 = n_passada2 + 1
+                        print(f"{100*n_passada2/n_passada:.0f}", "%")
                 elif (theta[i] <= theta_dir + 180 and y[i] <= (yi + (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] > v_yaw):
                     w.append(0.0)
                     v.append(v[i-1]-dt*acel)
@@ -338,6 +339,7 @@ while True:
                     STATUS.append("YAW-")
                     if (STATUS[i] == "PITCH desacelerando" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "DESCIDA"):
                         n_passada2 = n_passada2 + 1
+                        print(f"{100*n_passada2/n_passada:.0f}", "%")
                 
             x.append(x[i] + v[i] * math.sin(math.radians(theta[i])) * dt)
             y.append(y[i] + v[i] * math.cos(math.radians(theta[i])) * dt)
@@ -997,7 +999,6 @@ vz.append(0);vz = np.array(vz)
 t = np.array(t)
 z = np.array(z)
 theta = np.array(theta)
-STATUS.append("FIM")
 area_pulv_local = np.array(area_pulv_local)/10000
 
 andamento_operacao = pd.DataFrame({
