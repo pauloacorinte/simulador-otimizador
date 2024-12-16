@@ -287,7 +287,7 @@ while True:
                 v.append(0.0)
                 w.append(0.0)
                 STATUS.append("DESCIDA")
-                if abs(z[i] - (obter_z(x[i],y[i]) + z_pulverizando)) < v_subida*dt and abs(x[i]-x1[0]) < v_subida*dt or abs(y[i]-y_min[0]) < v_subida*dt:
+                if abs(z[i] - (obter_z(x[i],y[i]) + z_pulverizando)) < v_subida*dt and (x[i] == x1[0] or y[i] == y_min[0]):
                     x[i] = x1[0]
                     y[i] = y_min[0]
                     z[i] = obter_z(x[i],y[i]) + z_pulverizando
@@ -295,10 +295,13 @@ while True:
                 elif abs(z[i] - (obter_z(x[i],y[i]) + z_pulverizando)) < v_subida*dt and (x[i] == x_rtl or y[i] == y_rtl):
                     x[i] = x_rtl
                     y[i] = y_rtl
+                    v.append(v[i-1]+dt*acel)
+                    w.append(0.0)
+                    vz.append(0.0)
                     z[i] = obter_z(x[i],y[i]) + z_pulverizando
                     STATUS.append("DESCIDA PRE PITCH")
                 
-            if STATUS[i] != "DESCIDA" or STATUS[i] == "DESCIDA PRE PITCH":
+            if (STATUS[i] != "DESCIDA" or STATUS[i] == "DESCIDA PRE PITCH") and (x[i] != x_rtl or y[i] != y_rtl):
                 
                 if z[i] > obter_z(x[i],y[i]) + z_pulverizando:
                     vz.append(-v_subida)
