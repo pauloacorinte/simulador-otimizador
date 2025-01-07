@@ -84,12 +84,6 @@ pontos_z = [p[2] for p in pontos]    # Extraindo Z
 def obter_z(x, y):
     # Interpolação para calcular o valor de Z em qualquer ponto (x, y)
     z = griddata(pontos_xy, pontos_z, (x, y), method='linear')
-    
-    # Se o ponto estiver fora do domínio, `griddata` retorna NaN
-    if np.isnan(z):
-        # Use "nearest" para extrapolar
-        z = griddata(pontos_xy, pontos_z, (x, y), method='nearest')
-    
     return z
 
 pontos2 = pontos_xy
@@ -287,18 +281,26 @@ while True:
 #=============================================================================#     
         
         if OP[i] == "PULVERIZANDO":
-
-            if z[i] > obter_z(x[i],y[i]) + z_pulverizando and (y[i] == y_min[0] or y[i] == y_rtl):
+            if math.isnan(obter_z(x[i], y[i])):
+                print("Entrou")
+                Z_aux = float('nan')  # Inicializa com NaN
+                j = 0  # Contador para retroceder na série de y
+                while math.isnan(Z_aux) and (i - j >= 0):  # Garante que o índice não seja negativo
+                    Z_aux = obter_z(x[i], y[i - j])  # Tenta obter Z com o valor atual ou anterior
+                    j += 1  # Avança para o próximo valor anterior
+            else:
+                Z_aux = obter_z(x[i], y[i])
+            if z[i] > Z_aux + z_pulverizando and (y[i] == y_min[0] or y[i] == y_rtl):
                 vz.append(-v_subida)
                 v.append(0.0)
                 w.append(0.0)
                 STATUS.append("DESCIDA")
-                if abs(z[i] - (obter_z(x[i],y[i]) + z_pulverizando)) < v_subida*dt and (x[i] == x1[0] or y[i] == y_min[0]):
+                if abs(z[i] - (Z_aux + z_pulverizando)) < v_subida*dt and (x[i] == x1[0] or y[i] == y_min[0]):
                     x[i] = x1[0]
                     y[i] = y_min[0]
                     z[i] = obter_z(x[i],y[i]) + z_pulverizando
                     STATUS.append("DESCIDA PRE PITCH")
-                elif abs(z[i] - (obter_z(x[i],y[i]) + z_pulverizando)) < v_subida*dt and (x[i] == x_rtl or y[i] == y_rtl):
+                elif abs(z[i] - (Z_aux + z_pulverizando)) < v_subida*dt and (x[i] == x_rtl or y[i] == y_rtl):
                     x[i] = x_rtl
                     y[i] = y_rtl
                     v.append(v[i-1]+dt*acel)
@@ -309,11 +311,11 @@ while True:
                 
             if (STATUS[i] != "DESCIDA" or STATUS[i] == "DESCIDA PRE PITCH") and (x[i] != x_rtl or y[i] != y_rtl):
                 
-                if z[i] > obter_z(x[i],y[i]) + z_pulverizando:
+                if z[i] > Z_aux + z_pulverizando:
                     vz.append(-v_subida)
-                elif z[i] < obter_z(x[i],y[i]) + z_pulverizando: 
+                elif z[i] < Z_aux + z_pulverizando: 
                     vz.append(v_subida)
-                elif z[i] == obter_z(x[i],y[i]) + z_pulverizando:
+                elif z[i] == Z_aux + z_pulverizando:
                     vz.append(0)
                 elif np.isnan(obter_z(x[i], y[i])):
                     vz.append(0)
