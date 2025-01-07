@@ -44,7 +44,7 @@ g = 9.80665 # gravidade
 #=============================================================================# 
 
 OTIMIZAR_TANQUE = "NAO" #SIM ou NAO para otimizar tanque de cada voo
-SETAR_TANQUE = "NAO"  #SIM ou NAO para setar o tanque de cada voo
+SETAR_TANQUE = "SIM"  #SIM ou NAO para setar o tanque de cada voo
 SETAR_POSICAO = "NAO" #SIM ou NAO para setar a posição de cada voo
 SETAR_Z_DESLOCAMENTO = "NAO" #SIM ou NAO para setar o Z de deslocamento em voo
 
@@ -54,10 +54,10 @@ SETAR_Z_DESLOCAMENTO = "NAO" #SIM ou NAO para setar o Z de deslocamento em voo
 # pontos = [[100, 50], [50, 200], [200, 150], [250, 100]]
 
 pontos = [
-    [46.5-faixa/2, 43, -10],   # Ponto 1 (x1, y1, z1)
-    [46.5-faixa/2, 334, -20],  # Ponto 2 (x2, y2, z2)
-    [606+faixa/2, 71, -30],  # Ponto 3 (x3, y3, z3)
-    [606+faixa/2, 357, -40]  # Ponto 4 (x4, y4, z4)
+    [46.5-faixa/2, 43, 0],   # Ponto 1 (x1, y1, z1)
+    [46.5-faixa/2, 334, 0],  # Ponto 2 (x2, y2, z2)
+    [606+faixa/2, 71, -23],  # Ponto 3 (x3, y3, z3)
+    [606+faixa/2, 357, -29]  # Ponto 4 (x4, y4, z4)
     ]
 thet = 0
 
@@ -84,6 +84,12 @@ pontos_z = [p[2] for p in pontos]    # Extraindo Z
 def obter_z(x, y):
     # Interpolação para calcular o valor de Z em qualquer ponto (x, y)
     z = griddata(pontos_xy, pontos_z, (x, y), method='linear')
+    
+    # Se o ponto estiver fora do domínio, `griddata` retorna NaN
+    if np.isnan(z):
+        # Use "nearest" para extrapolar
+        z = griddata(pontos_xy, pontos_z, (x, y), method='nearest')
+    
     return z
 
 pontos2 = pontos_xy
