@@ -352,10 +352,16 @@ while True:
                     theta.append(theta_dir + 180)
                     if x[i] >= max(x1):
                         x[i+1] = max(x1)
-                        y[i+1] = Y
+                        if OP[i-1] == "RTW":
+                            y[i+1] == y_rtl
+                        else:                        
+                            y[i+1] = Y
                     else:
                         x[i+1] = xi + n_passada2 * faixa * math.cos(math.radians(theta_dir))
-                        y[i+1] = Y
+                        if OP[i-1] == "RTW":
+                            y[i+1] == y_rtl
+                        else:                        
+                            y[i+1] = Y
                     n = n + 1
                 else:
                     theta.append(theta[i] + w[i] * dt)
