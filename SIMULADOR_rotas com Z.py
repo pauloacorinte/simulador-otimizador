@@ -21,14 +21,14 @@ v_pulv = 7 # [m/s]
 v_deslocamento = 10 # [m/s] 
 faixa = 11 # [m] 
 celulas = 14 # [m/s] 
-cap_bat = 30000*0.8 # [m/Ah]*útil                                                                                                     
+cap_bat = 30000*0.83 # [m/Ah]*útil                                                                                                     
 M_vazio = 38 # [kg] 
 M_bat = 12.9 # [kg] 
 COAXIAL_80 = 1.397542375147 # Sobressalência de potência do coaxial
 Cnst_PWM_T = 0.3844 # Constante de transformação pwm para tração
 fator_erro_otimizacao = 1.1 # Fator para adequar a otimização
-bateria_limite = 0.29 # [%] de bateria para RTL BAT
-z_deslocando = 14 # [m] 
+bateria_limite = 0.3 # [%] de bateria para RTL BAT
+z_deslocando = 10 # [m] 
 z_pulverizando = 5.001 # [m] 
 acel = 1.4 # [m/s2] 
 v_subida = 2 # [m/s] 
@@ -135,7 +135,7 @@ while True:
     P_sist = 38.71
     P_bombas = 95.04
     dt = 0.1
-    t_prep = 0; t_abs_calda = 0; t_abs_comb = 0; t_desloc_pre_op = 4.5 
+    t_prep = 0; t_abs_calda = 0; t_abs_comb = 0; t_desloc_pre_op = 4.5 +2.2 
     t_desloc_pos_op = 0 ;
     t_triplice_lavagem = 0;
     t_lavagem_limpeza = 0
@@ -282,7 +282,6 @@ while True:
         
         if OP[i] == "PULVERIZANDO":
             if math.isnan(obter_z(x[i], y[i])):
-                print("Entrou")
                 Z_aux = float('nan')  # Inicializa com NaN
                 j = 0  # Contador para retroceder na série de y
                 while math.isnan(Z_aux) and (i - j >= 0):  # Garante que o índice não seja negativo
