@@ -21,12 +21,12 @@ v_pulv = 7 # [m/s]
 v_deslocamento = 10 # [m/s] 
 faixa = 11 # [m] 
 celulas = 14 # [m/s] 
-cap_bat = 30000*0.83 # [m/Ah]*útil                                                                                                     
-M_vazio = 38 # [kg] 
-M_bat = 12.9 # [kg] 
+cap_bat = 30000*0.81 # [m/Ah]*útil                           
+M_vazio = 38 # [kg]
+M_bat = 12.9 # [kg]
 COAXIAL_80 = 1.397542375147 # Sobressalência de potência do coaxial
 Cnst_PWM_T = 0.3844 # Constante de transformação pwm para tração
-fator_erro_otimizacao = 1.1 # Fator para adequar a otimização
+fator_erro_otimizacao = 1.15 # Fator para adequar a otimização
 bateria_limite = 0.3 # [%] de bateria para RTL BAT
 z_deslocando = 10 # [m] 
 z_pulverizando = 5.001 # [m] 
@@ -44,7 +44,7 @@ g = 9.80665 # gravidade
 #=============================================================================# 
 
 OTIMIZAR_TANQUE = "NAO" #SIM ou NAO para otimizar tanque de cada voo
-SETAR_TANQUE = "SIM"  #SIM ou NAO para setar o tanque de cada voo
+SETAR_TANQUE = "NAO"  #SIM ou NAO para setar o tanque de cada voo
 SETAR_POSICAO = "NAO" #SIM ou NAO para setar a posição de cada voo
 SETAR_Z_DESLOCAMENTO = "NAO" #SIM ou NAO para setar o Z de deslocamento em voo
 
@@ -93,7 +93,7 @@ vazao = Taxa/10000 * (v_pulv*60*faixa)
 A = np.pi*(0.5*Diametro*0.0254)**2
 cnst = 1/(eta_escmotor*eta_helice)
 v_yaw = math.pi/180*omega*faixa/2
-M_pulv_max = 35
+M_pulv_max = 26
 area_pulv_local = [0]
 indice_voo = []
 T_hover = []; PWM_hover = []; 
@@ -311,9 +311,9 @@ while True:
             if (STATUS[i] != "DESCIDA" or STATUS[i] == "DESCIDA PRE PITCH") and (x[i] != x_rtl or y[i] != y_rtl):
                 
                 if z[i] > Z_aux + z_pulverizando:
-                    vz.append(-v_subida)
+                    vz.append(-0.2)
                 elif z[i] < Z_aux + z_pulverizando: 
-                    vz.append(v_subida)
+                    vz.append(0.2)
                 elif z[i] == Z_aux + z_pulverizando:
                     vz.append(0)
                 elif np.isnan(obter_z(x[i], y[i])):

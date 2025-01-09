@@ -6,11 +6,12 @@ from opt_tanque import Otimizador_Tanque
 import plotly.graph_objects as go
 from Rotas import rotacionar_ponto, ajustar_offset, distancia_origem, angulo_em_relaçao_ao_eixo_x, ordenar_pontos, calcular_reta
 from Rotas import rotas
- # aobaa
+from scipy.interpolate import griddata
+
 # INPUTS PRINCIPAIS
 #=============================================================================#  
 
-n_motores = 8 # Número motores
+n_motores = 8 # Número motor
 Diametro = 54 # [in]
 eta_escmotor = 0.848 # Eficiência ESC e Motor
 eta_helice = 0.7719 # Eficiência Hélice
@@ -20,14 +21,14 @@ v_pulv = 7 # [m/s]
 v_deslocamento = 10 # [m/s] 
 faixa = 11 # [m] 
 celulas = 14 # [m/s] 
-cap_bat = 30000*0.81 # [m/Ah]*útil                                                                                                     
-M_vazio = 38 # [kg] 
-M_bat = 12.9 # [kg] 
+cap_bat = 30000*0.81 # [m/Ah]*útil                           
+M_vazio = 38 # [kg]
+M_bat = 12.9 # [kg]
 COAXIAL_80 = 1.397542375147 # Sobressalência de potência do coaxial
 Cnst_PWM_T = 0.3844 # Constante de transformação pwm para tração
-fator_erro_otimizacao = 1.1 # Fator para adequar a otimização
-bateria_limite = 0.29 # [%] de bateria para RTL BAT
-z_deslocando = 14 # [m] 
+fator_erro_otimizacao = 1.15 # Fator para adequar a otimização
+bateria_limite = 0.3 # [%] de bateria para RTL BAT
+z_deslocando = 10 # [m] 
 z_pulverizando = 5.001 # [m] 
 acel = 1.4 # [m/s2] 
 v_subida = 2 # [m/s] 
@@ -43,16 +44,22 @@ g = 9.80665 # gravidade
 #=============================================================================# 
 
 OTIMIZAR_TANQUE = "NAO" #SIM ou NAO para otimizar tanque de cada voo
-SETAR_TANQUE = "SIM"  #SIM ou NAO para setar o tanque de cada voo
+SETAR_TANQUE = "NAO"  #SIM ou NAO para setar o tanque de cada voo
 SETAR_POSICAO = "NAO" #SIM ou NAO para setar a posição de cada voo
 SETAR_Z_DESLOCAMENTO = "NAO" #SIM ou NAO para setar o Z de deslocamento em voo
 
 # pontos = [[50, 50], [20, 100], [200, 80], [150, 0]]
 # pontos = [[50, 50], [100, 200], [250, 150], [300, 0]]
-pontos = [[46.5-faixa/2, 43], [46.5-faixa/2, 334], [606+faixa/2, 71], [606+faixa/2, 357]]
+# pontos = [[46.5-faixa/2, 43], [46.5-faixa/2, 334], [606+faixa/2, 71], [606+faixa/2, 357]]
 # pontos = [[100, 50], [50, 200], [200, 150], [250, 100]]
-thet = 0
 
+pontos = [
+    [46.5-faixa/2, 43, 0],   # Ponto 1 (x1, y1, z1)
+    [46.5-faixa/2, 334, 0],  # Ponto 2 (x2, y2, z2)
+    [606+faixa/2, 71, -23],  # Ponto 3 (x3, y3, z3)
+    [606+faixa/2, 357, -29]  # Ponto 4 (x4, y4, z4)
+    ]
+thet = 0
 
 perna_rtw = [8,15,22,29,35,42,48,53] # Pernas para x voos 
 X_rtw =     [x0 + faixa/2 + faixa*(perna_rtw[0]-1),
@@ -71,13 +78,22 @@ Dist_ensaio_voo = [2511, 2662, 2940, 2817, 2933, 3168, 3071, 2904] # [m] para x 
 # CÁLCULOS INICIAIS
 #=============================================================================# 
 
+pontos_xy = [p[:2] for p in pontos]  # Extraindo X e Y
+pontos_z = [p[2] for p in pontos]    # Extraindo Z
+
+def obter_z(x, y):
+    # Interpolação para calcular o valor de Z em qualquer ponto (x, y)
+    z = griddata(pontos_xy, pontos_z, (x, y), method='linear')
+    return z
+
+pontos2 = pontos_xy
 iteracao_posicao = -1
 E_bat_max = (cap_bat/1000)*3.7*celulas
 vazao = Taxa/10000 * (v_pulv*60*faixa)
 A = np.pi*(0.5*Diametro*0.0254)**2
 cnst = 1/(eta_escmotor*eta_helice)
 v_yaw = math.pi/180*omega*faixa/2
-M_pulv_max = 35
+M_pulv_max = 26
 area_pulv_local = [0]
 indice_voo = []
 T_hover = []; PWM_hover = []; 
@@ -110,8 +126,8 @@ M_tot = []
 Massa_por_voo.append(M_pulv_max)
 n_passada2 = 0
 
-
-x1, y_min, y_max, max_x, n_passada, ponto1, ponto2, ponto3, ponto4, y1, x2, y2 = rotas(pontos, thet, faixa)
+x1, y_min, y_max, max_x, n_passada, ponto1, ponto2, ponto3, ponto4, y1, x2, y2 = rotas(pontos2, thet, faixa)
+            
 while True:
     M_tot_in = M_pulv_max + M_vazio + M_bat
     P_sensores = 0;
@@ -119,7 +135,7 @@ while True:
     P_sist = 38.71
     P_bombas = 95.04
     dt = 0.1
-    t_prep = 0; t_abs_calda = 0; t_abs_comb = 0; t_desloc_pre_op = 4.5 
+    t_prep = 0; t_abs_calda = 0; t_abs_comb = 0; t_desloc_pre_op = 4.5 +2.2 
     t_desloc_pos_op = 0 ;
     t_triplice_lavagem = 0;
     t_lavagem_limpeza = 0
@@ -265,46 +281,74 @@ while True:
 #=============================================================================#     
         
         if OP[i] == "PULVERIZANDO":
-            
-            if z[i] >= z_pulverizando:
+            if math.isnan(obter_z(x[i], y[i])):
+                Z_aux = float('nan')  # Inicializa com NaN
+                j = 0  # Contador para retroceder na série de y
+                while math.isnan(Z_aux) and (i - j >= 0):  # Garante que o índice não seja negativo
+                    Z_aux = obter_z(x[i], y[i - j])  # Tenta obter Z com o valor atual ou anterior
+                    j += 1  # Avança para o próximo valor anterior
+            else:
+                Z_aux = obter_z(x[i], y[i])
+            if z[i] > Z_aux + z_pulverizando and (y[i] == y_min[0] or y[i] == y_rtl):
                 vz.append(-v_subida)
                 v.append(0.0)
                 w.append(0.0)
                 STATUS.append("DESCIDA")
-            elif ((theta[i] == theta_dir and y[i] < (Y - (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] < v_pulv) or (theta[i] == theta_dir + 180 and y[i] > yi + (v[i-1]**2 - v_yaw**2)/(2*acel)  and v[i-1] < v_pulv)):
-                vz.append(0.0)
-                v.append(v[i-1]+dt*acel)
-                w.append(0.0)
-                STATUS.append("PITCH acelerando")
-            elif ((theta[i] == theta_dir and y[i] < (Y - (v_pulv**2 - v_yaw**2)/(2*acel)) and v[i-1] >= v_pulv) or (theta[i] == theta_dir + 180 and y[i] > yi + (v_pulv**2 - v_yaw**2)/(2*acel) and v[i-1] >= v_pulv)):
-                vz.append(0.0)
-                v.append(v_pulv)
-                w.append(0.0)
-                STATUS.append("PITCH")
-            elif (theta[i] >= theta_dir and y[i] >= (Y - (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] > v_yaw):
-                vz.append(0.0)
-                w.append(0.0)
-                v.append(v[i-1]-dt*acel)
-                STATUS.append("PITCH desacelerando")
-            elif (theta[i] >= theta_dir and y[i] >= (Y - (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] <= v_yaw):
-                vz.append(0.0)
-                w.append(omega)
-                v.append(v_yaw)
-                STATUS.append("YAW+")
-                if (STATUS[i-1] == "PITCH desacelerando" or STATUS[i-1] == "PITCH acelerando" or STATUS[i-1] == "DESCIDA"):
-                    n_passada2 = n_passada2 + 1
-            elif (theta[i] <= theta_dir + 180 and y[i] <= (yi + (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] > v_yaw):
-                vz.append(0.0)
-                w.append(0.0)
-                v.append(v[i-1]-dt*acel)
-                STATUS.append("PITCH desacelerando")
-            elif (theta[i] <= theta_dir + 180 and y[i] <= (yi + (v_pulv**2 - v_yaw**2)/(2*acel)) and v[i-1] <= v_yaw):
-                vz.append(0.0)
-                w.append(-omega)
-                v.append(v_yaw)
-                STATUS.append("YAW-")
-                if (STATUS[i-1] == "PITCH desacelerando" or STATUS[i-1] == "PITCH acelerando" or STATUS[i-1] == "DESCIDA"):
-                    n_passada2 = n_passada2 + 1
+                if abs(z[i] - (Z_aux + z_pulverizando)) < v_subida*dt and (x[i] == x1[0] or y[i] == y_min[0]):
+                    x[i] = x1[0]
+                    y[i] = y_min[0]
+                    z[i] = obter_z(x[i],y[i]) + z_pulverizando
+                    STATUS.append("DESCIDA PRE PITCH")
+                elif abs(z[i] - (Z_aux + z_pulverizando)) < v_subida*dt and (x[i] == x_rtl or y[i] == y_rtl):
+                    x[i] = x_rtl
+                    y[i] = y_rtl
+                    v.append(v[i-1]+dt*acel)
+                    w.append(0.0)
+                    vz.append(0.0)
+                    z[i] = obter_z(x[i],y[i]) + z_pulverizando
+                    STATUS.append("DESCIDA PRE PITCH")
+                
+            if (STATUS[i] != "DESCIDA" or STATUS[i] == "DESCIDA PRE PITCH") and (x[i] != x_rtl or y[i] != y_rtl):
+                
+                if z[i] > Z_aux + z_pulverizando:
+                    vz.append(-0.2)
+                elif z[i] < Z_aux + z_pulverizando: 
+                    vz.append(0.2)
+                elif z[i] == Z_aux + z_pulverizando:
+                    vz.append(0)
+                elif np.isnan(obter_z(x[i], y[i])):
+                    vz.append(0)
+                    
+                if ((theta[i] == theta_dir and y[i] < (Y - (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] < v_pulv) or (theta[i] == theta_dir + 180 and y[i] > yi + (v[i-1]**2 - v_yaw**2)/(2*acel)  and v[i-1] < v_pulv)):
+                    v.append(v[i-1]+dt*acel)
+                    w.append(0.0)
+                    STATUS.append("PITCH acelerando")
+                elif ((theta[i] == theta_dir and y[i] < (Y - (v_pulv**2 - v_yaw**2)/(2*acel)) and v[i-1] >= v_pulv) or (theta[i] == theta_dir + 180 and y[i] > yi + (v_pulv**2 - v_yaw**2)/(2*acel) and v[i-1] >= v_pulv)):
+                    v.append(v_pulv)
+                    w.append(0.0)
+                    STATUS.append("PITCH")
+                elif (theta[i] >= theta_dir and y[i] >= (Y - (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] > v_yaw):
+                    w.append(0.0)
+                    v.append(v[i-1]-dt*acel)
+                    STATUS.append("PITCH desacelerando")
+                elif (theta[i] >= theta_dir and y[i] >= (Y - (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] <= v_yaw):
+                    w.append(omega)
+                    v.append(v_yaw)
+                    STATUS.append("YAW+")
+                    if (STATUS[i] == "PITCH desacelerando" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "DESCIDA"):
+                        n_passada2 = n_passada2 + 1
+                        print(f"{100*n_passada2/n_passada:.0f}", "%")
+                elif (theta[i] <= theta_dir + 180 and y[i] <= (yi + (v[i-1]**2 - v_yaw**2)/(2*acel)) and v[i-1] > v_yaw):
+                    w.append(0.0)
+                    v.append(v[i-1]-dt*acel)
+                    STATUS.append("PITCH desacelerando")
+                elif (theta[i] <= theta_dir + 180 and y[i] <= (yi + (v_pulv**2 - v_yaw**2)/(2*acel)) and v[i-1] <= v_yaw):
+                    w.append(-omega)
+                    v.append(v_yaw)
+                    STATUS.append("YAW-")
+                    if (STATUS[i] == "PITCH desacelerando" or STATUS[i] == "PITCH acelerando" or STATUS[i] == "DESCIDA"):
+                        n_passada2 = n_passada2 + 1
+                        print(f"{100*n_passada2/n_passada:.0f}", "%")
                 
             x.append(x[i] + v[i] * math.sin(math.radians(theta[i])) * dt)
             y.append(y[i] + v[i] * math.cos(math.radians(theta[i])) * dt)
@@ -315,10 +359,16 @@ while True:
                     theta.append(theta_dir + 180)
                     if x[i] >= max(x1):
                         x[i+1] = max(x1)
-                        y[i+1] = Y
+                        if OP[i-1] == "RTW":
+                            y[i+1] == y_rtl
+                        else:                        
+                            y[i+1] = Y
                     else:
-                        x[i+1] = xi + n * faixa * math.cos(math.radians(theta_dir))
-                        y[i+1] = Y
+                        x[i+1] = xi + n_passada2 * faixa * math.cos(math.radians(theta_dir))
+                        if OP[i-1] == "RTW":
+                            y[i+1] == y_rtl
+                        else:                        
+                            y[i+1] = Y
                     n = n + 1
                 else:
                     theta.append(theta[i] + w[i] * dt)
@@ -329,7 +379,7 @@ while True:
                         x[i+1] = max(x1)
                         y[i+1] = yi
                     else:
-                        x[i+1] = xi + n * faixa * math.cos(math.radians(theta_dir))
+                        x[i+1] = xi + n_passada2 * faixa * math.cos(math.radians(theta_dir))
                         y[i+1] = yi
                     n = n + 1
                 else:
@@ -399,12 +449,12 @@ while True:
             else:
                 theta.append(theta[i])
                 
-            if (z[i] + vz[i] * dt < 0):
+            if (z[i] + vz[i] * dt < 0) and x[i] == 0:
                 z.append(0)
             else:
                 z.append(z[i] + vz[i] * dt)
                 
-            if STATUS[i] == "PITCH desacelerando" and abs(z[i] - z_pulverizando) <= 0.001:
+            if STATUS[i] == "PITCH desacelerando" and (theta[i] == 0 or theta[i] == 180):
                 if (x[i] - abs(v[i]*math.sin(math.radians(theta[i])) * dt) < 0):
                     x.append(0)
                 else:
@@ -859,7 +909,7 @@ while True:
 # DESVIO PADRÃO DA DISTÂNCIA PERCORRIDA
 #=============================================================================#
 
-if SETAR_POSICAO == "SIM":           
+if SETAR_POSICAO == "SIM" or SETAR_TANQUE == "SIM":           
     distancia = [0]  # Inicializa a lista de distâncias com o valor inicial 0
     Dist_voo = []
     for j in range(len(indice_voo)):  # Itera sobre os índices de 'indice_voo'
@@ -964,7 +1014,6 @@ vz.append(0);vz = np.array(vz)
 t = np.array(t)
 z = np.array(z)
 theta = np.array(theta)
-STATUS.append("FIM")
 area_pulv_local = np.array(area_pulv_local)/10000
 
 andamento_operacao = pd.DataFrame({
